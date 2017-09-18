@@ -61,9 +61,14 @@ private:
 	}; // Node
 
 private:
+	static const int MAX_LAYER = 16;
+
+private:
 	s2::Actor* m_root;
 
 	std::vector<Node> m_nodes;
+
+	int m_max_layer;
 
 	friend class BuildFlattenVisitor;
 

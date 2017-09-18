@@ -18,6 +18,7 @@ namespace ft
 
 Flatten::Flatten(s2::Actor* root)
 	: m_root(root)
+	, m_max_layer(0)
 {
 	Build();
 }
@@ -63,8 +64,13 @@ bool Flatten::Update(bool force)
 
 void Flatten::Draw(const s2::RenderParams& rp) const
 {
-	std::stack<sm::Matrix2D> stk_mat;
-	std::stack<s2::RenderColor> stk_col;
+	if (m_nodes.empty()) {
+		return;
+	}
+
+	sm::Matrix2D stk_mat[MAX_LAYER];
+	s2::RenderColor stk_col[MAX_LAYER];
+	int stk_sz = 0;
 
 	sm::Matrix2D prev_mt = rp.mt;
 	s2::RenderColor prev_col = rp.color;
@@ -73,51 +79,53 @@ void Flatten::Draw(const s2::RenderParams& rp) const
 	s2::RenderParams* rp_child = s2::RenderParamsPool::Instance()->Pop();
 	*rp_child = rp;
 
+	const Node* node_ptr = &m_nodes[0];
 	for (int i = 0, n = m_nodes.size(); i < n; )
 	{
-		const Node& node = m_nodes[i];
-
 		const s2::Sprite* spr = nullptr;
 		const s2::Actor* actor = nullptr;
 
-		if (node.IsDataSpr()) {
-			spr = static_cast<const s2::Sprite*>(node.m_data);
+		if (node_ptr->IsDataSpr()) {
+			spr = static_cast<const s2::Sprite*>(node_ptr->m_data);
 		} else {
-			actor = static_cast<const s2::Actor*>(node.m_data);
+			actor = static_cast<const s2::Actor*>(node_ptr->m_data);
 			spr = actor->GetSpr();
 		}
 
 		bool visible = actor ? actor->IsVisible() : spr->IsVisible();
 		if (!visible) {
-			i += node.m_count;
+			i += node_ptr->m_count;
+			node_ptr += node_ptr->m_count;
 			continue;
 		}
 
-		if (node.m_layer == prev_layer) {
+		if (node_ptr->m_layer == prev_layer) {
 			;
-		} else if (node.m_layer == prev_layer + 1) {
-			stk_mat.push(prev_mt);
-			stk_col.push(prev_col);
+		} else if (node_ptr->m_layer == prev_layer + 1) {
+			stk_mat[stk_sz] = prev_mt;
+			stk_col[stk_sz] = prev_col;
+			++stk_sz;
 		} else {
-			assert(node.m_layer < prev_layer && stk_mat.size() == stk_col.size());
-			while (stk_mat.size() > node.m_layer + 1) {
-				stk_mat.pop();
-				stk_col.pop();
+			assert(node_ptr->m_layer < prev_layer);
+			while (stk_sz > node_ptr->m_layer + 1) {
+				--stk_sz;
 			}
 		}
-		assert(node.m_layer + 1 == stk_mat.size() && stk_mat.size() == stk_col.size());
+		assert(node_ptr->m_layer + 1 == stk_sz);
 
-		s2::Utility::PrepareMat(stk_mat.top(), spr, actor, prev_mt);
-		s2::Utility::PrepareColor(stk_col.top(), spr, actor, prev_col);
-		prev_layer = node.m_layer;
+		s2::Utility::PrepareMat(stk_mat[stk_sz - 1], spr, actor, prev_mt);
+		s2::Utility::PrepareColor(stk_col[stk_sz - 1], spr, actor, prev_col);
+		prev_layer = node_ptr->m_layer;
 
 		rp_child->mt = prev_mt;
 		rp_child->color = prev_col;
 		rp_child->actor = actor;
 		if (spr->GetSymbol()->DrawFlatten(*rp_child, spr)) {
-			i += node.m_count;
+			i += node_ptr->m_count;
+			node_ptr += node_ptr->m_count;
 		} else {
 			++i;
+			++node_ptr;
 		}
 	}
 
@@ -135,6 +143,8 @@ void Flatten::Build()
 	m_root->GetSpr()->Traverse(visitor, params);
 
 	InitNeedUpdateFlag();
+
+	assert(m_max_layer < MAX_LAYER);
 }
 
 void Flatten::InitNeedUpdateFlag()

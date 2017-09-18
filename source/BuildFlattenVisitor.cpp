@@ -44,6 +44,9 @@ s2::VisitResult BuildFlattenVisitor::VisitChildrenEnd(const s2::Sprite* spr, con
 	Flatten::Node& node = m_flatten.m_nodes[curr];
 	node.m_count = tot - curr;
 	node.m_layer = m_curr_path.size();
+	if (node.m_layer > m_flatten.m_max_layer) {
+		m_flatten.m_max_layer = node.m_layer;
+	}
 	return s2::VISIT_OVER;
 }
 
