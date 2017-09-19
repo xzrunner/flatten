@@ -15,12 +15,13 @@ BuildFlattenVisitor::BuildFlattenVisitor(Flatten& flatten)
 
 s2::VisitResult BuildFlattenVisitor::Visit(const s2::Sprite* spr, const s2::SprVisitorParams& params)
 {
+	assert(m_flatten.m_nodes_cap > 0 && m_flatten.m_nodes_sz < m_flatten.m_nodes_cap);
 	if (params.actor) {
-		m_flatten.m_nodes.push_back(Flatten::Node(params.actor));
+		m_flatten.m_nodes[m_flatten.m_nodes_sz++].Init(params.actor);
 	} else {
-		m_flatten.m_nodes.push_back(Flatten::Node(spr));
+		m_flatten.m_nodes[m_flatten.m_nodes_sz++].Init(spr);
 	}
-	Flatten::Node& node = m_flatten.m_nodes.back();
+	Flatten::Node& node = m_flatten.m_nodes[m_flatten.m_nodes_sz - 1];
 	if (m_curr_path.empty()) {
 		node.m_parent = -1;
 	} else {
@@ -31,7 +32,7 @@ s2::VisitResult BuildFlattenVisitor::Visit(const s2::Sprite* spr, const s2::SprV
 
 s2::VisitResult BuildFlattenVisitor::VisitChildrenBegin(const s2::Sprite* spr, const s2::SprVisitorParams& params)
 {
-	m_curr_path.push_back(m_flatten.m_nodes.size() - 1);
+	m_curr_path.push_back(m_flatten.m_nodes_sz - 1);
 	return s2::VISIT_OVER;
 }
 
@@ -39,7 +40,7 @@ s2::VisitResult BuildFlattenVisitor::VisitChildrenEnd(const s2::Sprite* spr, con
 {
 	int curr = m_curr_path.back();
 	m_curr_path.pop_back();
-	int tot = m_flatten.m_nodes.size();
+	int tot = m_flatten.m_nodes_sz;
 	assert(tot >= curr);
 	Flatten::Node& node = m_flatten.m_nodes[curr];
 	node.m_count = tot - curr;

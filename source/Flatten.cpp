@@ -1,5 +1,6 @@
 #include "flatten/Flatten.h"
 #include "flatten/BuildFlattenVisitor.h"
+#include "flatten/CountNodesVisitor.h"
 
 #include <sprite2/SprVisitorParams.h>
 #include <sprite2/S2_Actor.h>
@@ -10,6 +11,8 @@
 #include <sprite2/S2_Symbol.h>
 #include <sprite2/SymType.h>
 #include <sprite2/DrawNode.h>
+#include <sprite2/AnimSprite.h>
+#include <sprite2/UpdateParams.h>
 
 #include <assert.h>
 
@@ -18,44 +21,63 @@ namespace ft
 
 Flatten::Flatten(s2::Actor* root)
 	: m_root(root)
+	, m_nodes(nullptr)
+	, m_nodes_sz(0)
+	, m_nodes_cap(0)
 	, m_max_layer(0)
 {
 	Build();
 }
 
+Flatten::~Flatten()
+{
+	if (m_nodes) {
+		free(m_nodes);
+	}
+}
+
 bool Flatten::Update(bool force)
 {
+	if (m_nodes_sz == 0) {
+		return false;
+	}
+
 	bool ret = false;
-	for (int i = 0, n = m_nodes.size(); i < n; )
+	const Node* node_ptr = &m_nodes[0];
+	for (int i = 0; i < m_nodes_sz; )
 	{
-		Node& node = m_nodes[i];
-		if (!node.IsNeedUpdate()) {
-			i += node.m_count;
+		if (!node_ptr->IsNeedUpdate()) {
+			i += node_ptr->m_count;
+			node_ptr += node_ptr->m_count;
 			continue;
 		}
 
 		// todo: up from root
 
-		if (node.IsDataSpr()) 
+		if (node_ptr->IsDataSpr()) 
 		{
-			const s2::Sprite* spr = static_cast<const s2::Sprite*>(node.m_data);
+			const s2::Sprite* spr = static_cast<const s2::Sprite*>(node_ptr->m_data);
 			if ((!force && !spr->IsInheritUpdate()) ||
 				!spr->IsVisible()) {
-				i += node.m_count;
+				i += node_ptr->m_count;
+				node_ptr += node_ptr->m_count;
 			} else {
 				const_cast<s2::Sprite*>(spr)->AutoUpdate(nullptr);
 				++i;
+				++node_ptr;
 			}
 		} 
 		else 
 		{
-			const s2::Actor* actor = static_cast<const s2::Actor*>(node.m_data);
+			const s2::Actor* actor = static_cast<const s2::Actor*>(node_ptr->m_data);
 			if ((!force && !actor->GetSpr()->IsInheritUpdate()) ||
 				!actor->IsVisible()) {
-				i += node.m_count;
+				i += node_ptr->m_count;
+				node_ptr += node_ptr->m_count;
 			} else {
 				const_cast<s2::Sprite*>(actor->GetSpr())->AutoUpdate(actor);
 				++i;
+				++node_ptr;
 			}
 		}		
 	}
@@ -64,7 +86,7 @@ bool Flatten::Update(bool force)
 
 void Flatten::Draw(const s2::RenderParams& rp) const
 {
-	if (m_nodes.empty()) {
+	if (m_nodes_sz == 0) {
 		return;
 	}
 
@@ -80,7 +102,7 @@ void Flatten::Draw(const s2::RenderParams& rp) const
 	*rp_child = rp;
 
 	const Node* node_ptr = &m_nodes[0];
-	for (int i = 0, n = m_nodes.size(); i < n; )
+	for (int i = 0; i < m_nodes_sz; )
 	{
 		const s2::Sprite* spr = nullptr;
 		const s2::Actor* actor = nullptr;
@@ -132,10 +154,83 @@ void Flatten::Draw(const s2::RenderParams& rp) const
 	s2::RenderParamsPool::Instance()->Push(rp_child);
 }
 
+void Flatten::SetFrame(bool force, int frame)
+{
+	if (m_nodes_sz == 0) {
+		return;
+	}
+
+	s2::UpdateParams params;
+
+	const Node* node_ptr = &m_nodes[0];
+	for (int i = 0; i < m_nodes_sz; )
+	{
+		if (!node_ptr->IsNeedUpdate()) {
+			i += node_ptr->m_count;
+			node_ptr += node_ptr->m_count;
+			continue;
+		}
+
+		if (node_ptr->IsDataSpr())
+		{
+			const s2::Sprite* spr = static_cast<const s2::Sprite*>(node_ptr->m_data);
+			if ((!force && !spr->IsInheritUpdate()) ||
+				!spr->IsVisible() ||
+				spr->GetSymbol()->Type() != s2::SYM_ANIMATION) 
+			{
+				i += node_ptr->m_count;
+				node_ptr += node_ptr->m_count;
+			} 
+			else 
+			{
+				const s2::AnimSprite* anim_spr = VI_DOWNCASTING<const s2::AnimSprite*>(spr);
+				params.SetActor(nullptr);
+				const_cast<s2::AnimSprite*>(anim_spr)->SetFrame(params, frame);
+				++i;
+				++node_ptr;
+			}
+		}
+		else
+		{
+			const s2::Actor* actor = static_cast<const s2::Actor*>(node_ptr->m_data);
+			if ((!force && !actor->GetSpr()->IsInheritUpdate()) ||
+				!actor->IsVisible() ||
+				actor->GetSpr()->GetSymbol()->Type() != s2::SYM_ANIMATION) 
+			{
+				i += node_ptr->m_count;
+				node_ptr += node_ptr->m_count;
+			} 
+			else 
+			{
+				const s2::AnimSprite* anim_spr = VI_DOWNCASTING<const s2::AnimSprite*>(actor->GetSpr());
+				params.SetActor(actor);
+				const_cast<s2::AnimSprite*>(anim_spr)->SetFrame(params, frame);
+				++i;
+				++node_ptr;
+			}
+		}
+	}
+}
+
 void Flatten::Build()
 {
-	m_nodes.clear();
+	int count = 0;
+	{
+		s2::SprVisitorParams params;
+		params.actor = m_root;
 
+		CountNodesVisitor visitor;
+		m_root->GetSpr()->Traverse(visitor, params);
+
+		count = visitor.GetCount();
+	}
+
+	if (!m_nodes || m_nodes_cap != count) {
+		m_nodes = (Node*)realloc(m_nodes, sizeof(Node) * count);
+	}
+	m_nodes_cap = count;
+	m_nodes_sz = 0;
+	
 	s2::SprVisitorParams params;
 	params.actor = m_root;
 
@@ -149,31 +244,31 @@ void Flatten::Build()
 
 void Flatten::InitNeedUpdateFlag()
 {
-	if (m_nodes.empty()) {
+	if (m_nodes_sz == 0) {
 		return;
 	}
 
-	for (int i = m_nodes.size() - 1; i >= 0; --i)
+	Node* node_ptr = &m_nodes[m_nodes_sz - 1];
+	for (int i = m_nodes_sz - 1; i >= 0; --i, --node_ptr)
 	{
-		Node& node = m_nodes[i];
-		if (node.IsNeedUpdate()) {
+		if (node_ptr->IsNeedUpdate()) {
 			continue;
 		}
-		assert(node.m_data);
+		assert(node_ptr->m_data);
 		bool need_update = false;
-		if (node.IsDataSpr()) {
-			need_update = static_cast<const s2::Sprite*>(node.m_data)->NeedAutoUpdate(nullptr);
+		if (node_ptr->IsDataSpr()) {
+			need_update = static_cast<const s2::Sprite*>(node_ptr->m_data)->NeedAutoUpdate(nullptr);
 		} else {
-			const s2::Actor* actor = static_cast<const s2::Actor*>(node.m_data);
+			const s2::Actor* actor = static_cast<const s2::Actor*>(node_ptr->m_data);
 			need_update = actor->GetSpr()->NeedAutoUpdate(actor);
 		}
 		if (need_update) 
 		{
-			node.SetNeedUpdate(true);
-			uint16_t parent = node.m_parent;
+			node_ptr->SetNeedUpdate(true);
+			uint16_t parent = node_ptr->m_parent;
 			while (parent != Node::INVALID_ID)
 			{
-				assert(parent >= 0 && parent < m_nodes.size());
+				assert(parent >= 0 && parent < m_nodes_sz);
 				Node& curr = m_nodes[parent];
 				curr.SetNeedUpdate(true);
 				parent = curr.m_parent;
@@ -186,24 +281,34 @@ void Flatten::InitNeedUpdateFlag()
 /* class Flatten::Node                                                 */
 /************************************************************************/
 
-Flatten::Node::Node(const s2::Sprite* spr)
-	: m_data(spr)
-	, m_parent(INVALID_ID)
-	, m_count(0)
-	, m_layer(0)
-	, m_flags(0)
+Flatten::Node::Node()
 {
+	Init();
+}
+
+void Flatten::Node::Init(const s2::Sprite* spr)
+{
+	Init();
+
+	m_data = spr;
 	SetDataSpr(true);
 }
 
-Flatten::Node::Node(const s2::Actor* actor)
-	: m_data(actor)
-	, m_parent(INVALID_ID)
-	, m_count(0)
-	, m_layer(0)
-	, m_flags(0)
+void Flatten::Node::Init(const s2::Actor* actor)
 {
+	Init();
+
+	m_data = actor;
 	SetDataSpr(false);
+}
+
+void Flatten::Node::Init()
+{
+	m_data = nullptr;
+	m_parent = INVALID_ID;
+	m_count = 0;
+	m_layer = 0;
+	m_flags = 0;
 }
 
 }

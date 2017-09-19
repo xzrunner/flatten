@@ -1,7 +1,7 @@
 #ifndef _FLATTEN_FLATTEN_H_
 #define _FLATTEN_FLATTEN_H_
 
-#include "sprite2/s2_macro.h"
+#include <sprite2/s2_macro.h>
 
 #include <vector>
 
@@ -18,9 +18,12 @@ public:
 	Flatten(s2::Actor* root);
 	Flatten(const Flatten&) = delete;
 	Flatten(Flatten&&) = delete;
+	~Flatten();
 
 	bool Update(bool force);
 	void Draw(const s2::RenderParams& rp) const;
+
+	void SetFrame(bool force, int frame);
 
 private:
 	void Build();
@@ -31,8 +34,15 @@ private:
 	class Node
 	{
 	public:
-		Node(const s2::Sprite* spr);
-		Node(const s2::Actor* actor);
+		Node();
+		Node(const Node&) = delete;
+		void operator=(const Node&) = delete;
+
+		void Init(const s2::Sprite* spr);
+		void Init(const s2::Actor* actor);
+
+	private:
+		void Init();
 
 	private:
 		static const uint16_t FLAG_DATA_SPR    = 0x0001;
@@ -66,7 +76,8 @@ private:
 private:
 	s2::Actor* m_root;
 
-	std::vector<Node> m_nodes;
+	Node* m_nodes;
+	int m_nodes_sz, m_nodes_cap;
 
 	int m_max_layer;
 
