@@ -4,6 +4,7 @@
 #include <sprite2/s2_macro.h>
 
 #include <vector>
+#include <memory>
 
 #include <stdint.h>
 
@@ -12,7 +13,7 @@ namespace s2 { class Sprite; class Actor; class RenderParams; }
 namespace ft
 {
 
-class Flatten
+class Flatten : public std::enable_shared_from_this<Flatten>
 {
 public:
 	Flatten(s2::Actor* root);
@@ -20,15 +21,19 @@ public:
 	Flatten(Flatten&&) = delete;
 	~Flatten();
 
-	bool Update(bool force);
-	void Draw(const s2::RenderParams& rp) const;
+	bool Update(int pos, bool force);
+	void Draw(int pos, const s2::RenderParams& rp);
 
-	void SetFrame(bool force, int frame);
+	void SetFrame(int pos, bool force, int frame);
+
+	void SetDirty() { m_dirty = true; }
 
 private:
 	void Build();
 
 	void InitNeedUpdateFlag();
+
+	bool CheckFirst(int pos);
 
 private:
 	class Node
@@ -80,6 +85,8 @@ private:
 	int m_nodes_sz, m_nodes_cap;
 
 	int m_max_layer;
+
+	bool m_dirty;
 
 	friend class BuildFlattenVisitor;
 

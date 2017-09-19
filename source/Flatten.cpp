@@ -25,8 +25,8 @@ Flatten::Flatten(s2::Actor* root)
 	, m_nodes_sz(0)
 	, m_nodes_cap(0)
 	, m_max_layer(0)
+	, m_dirty(true)
 {
-	Build();
 }
 
 Flatten::~Flatten()
@@ -36,15 +36,17 @@ Flatten::~Flatten()
 	}
 }
 
-bool Flatten::Update(bool force)
+bool Flatten::Update(int pos, bool force)
 {
-	if (m_nodes_sz == 0) {
+	if (!CheckFirst(pos)) {
 		return false;
 	}
 
+	assert(m_nodes[0].m_count == m_nodes_sz);
+
 	bool ret = false;
-	const Node* node_ptr = &m_nodes[0];
-	for (int i = 0; i < m_nodes_sz; )
+	const Node* node_ptr = &m_nodes[pos];
+	for (int i = 0, n = node_ptr->m_count; i < n; )
 	{
 		if (!node_ptr->IsNeedUpdate()) {
 			i += node_ptr->m_count;
@@ -84,9 +86,9 @@ bool Flatten::Update(bool force)
 	return ret;
 }
 
-void Flatten::Draw(const s2::RenderParams& rp) const
+void Flatten::Draw(int pos, const s2::RenderParams& rp)
 {
-	if (m_nodes_sz == 0) {
+	if (!CheckFirst(pos)) {
 		return;
 	}
 
@@ -96,13 +98,16 @@ void Flatten::Draw(const s2::RenderParams& rp) const
 
 	sm::Matrix2D prev_mt = rp.mt;
 	s2::RenderColor prev_col = rp.color;
-	int prev_layer = -1;
 
 	s2::RenderParams* rp_child = s2::RenderParamsPool::Instance()->Pop();
 	*rp_child = rp;
 
-	const Node* node_ptr = &m_nodes[0];
-	for (int i = 0; i < m_nodes_sz; )
+	assert(m_nodes[0].m_count == m_nodes_sz);
+
+	const Node* node_ptr = &m_nodes[pos];
+	int start_layer = node_ptr->m_layer;
+	int prev_layer = start_layer - 1;
+	for (int i = 0, n = node_ptr->m_count; i < n; )
 	{
 		const s2::Sprite* spr = nullptr;
 		const s2::Actor* actor = nullptr;
@@ -129,11 +134,11 @@ void Flatten::Draw(const s2::RenderParams& rp) const
 			++stk_sz;
 		} else {
 			assert(node_ptr->m_layer < prev_layer);
-			while (stk_sz > node_ptr->m_layer + 1) {
+			while (stk_sz > node_ptr->m_layer + 1 - start_layer) {
 				--stk_sz;
 			}
 		}
-		assert(node_ptr->m_layer + 1 == stk_sz);
+		assert(node_ptr->m_layer + 1 - start_layer == stk_sz);
 
 		s2::Utility::PrepareMat(stk_mat[stk_sz - 1], spr, actor, prev_mt);
 		s2::Utility::PrepareColor(stk_col[stk_sz - 1], spr, actor, prev_col);
@@ -154,16 +159,18 @@ void Flatten::Draw(const s2::RenderParams& rp) const
 	s2::RenderParamsPool::Instance()->Push(rp_child);
 }
 
-void Flatten::SetFrame(bool force, int frame)
+void Flatten::SetFrame(int pos, bool force, int frame)
 {
-	if (m_nodes_sz == 0) {
+	if (!CheckFirst(pos)) {
 		return;
 	}
 
 	s2::UpdateParams params;
 
-	const Node* node_ptr = &m_nodes[0];
-	for (int i = 0; i < m_nodes_sz; )
+	assert(m_nodes[0].m_count == m_nodes_sz);
+
+	const Node* node_ptr = &m_nodes[pos];
+	for (int i = 0, n = node_ptr->m_count; i < n; )
 	{
 		if (!node_ptr->IsNeedUpdate()) {
 			i += node_ptr->m_count;
@@ -234,12 +241,14 @@ void Flatten::Build()
 	s2::SprVisitorParams params;
 	params.actor = m_root;
 
-	BuildFlattenVisitor visitor(*this);
+	BuildFlattenVisitor visitor(shared_from_this());
 	m_root->GetSpr()->Traverse(visitor, params);
 
 	InitNeedUpdateFlag();
 
 	assert(m_max_layer < MAX_LAYER);
+
+	m_dirty = false;
 }
 
 void Flatten::InitNeedUpdateFlag()
@@ -275,6 +284,20 @@ void Flatten::InitNeedUpdateFlag()
 			}
 		}
 	}
+}
+
+bool Flatten::CheckFirst(int pos)
+{
+	if (pos < 0) {
+		return false;
+	}
+	if (m_dirty) {
+		Build();
+	}
+	if (m_nodes_sz == 0 || pos >= m_nodes_sz) {
+		return false;
+	}
+	return true;
 }
 
 /************************************************************************/
