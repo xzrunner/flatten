@@ -5,6 +5,7 @@
 #include <sprite2/SpriteVisitor.h>
 
 #include <vector>
+#include <memory>
 
 namespace ft
 {
@@ -14,7 +15,7 @@ class Flatten;
 class BuildFlattenVisitor : public s2::SpriteVisitor
 {
 public:
-	BuildFlattenVisitor(Flatten& flatten);
+	BuildFlattenVisitor(std::shared_ptr<ft::Flatten> flatten);
 
 	virtual s2::VisitResult Visit(const s2::Sprite* spr, const s2::SprVisitorParams& params);
 
@@ -22,7 +23,7 @@ public:
 	virtual s2::VisitResult VisitChildrenEnd(const s2::Sprite* spr, const s2::SprVisitorParams& params);
 
 private:
-	Flatten& m_flatten;
+	std::shared_ptr<ft::Flatten> m_flatten;
 
 	std::vector<int> m_curr_path;
 
