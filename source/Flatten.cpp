@@ -14,6 +14,9 @@
 #include <sprite2/AnimSprite.h>
 #include <sprite2/UpdateParams.h>
 
+#include <memmgr/MemoryPool.h>
+#include <cooking/DisplayList.h>
+
 #include <assert.h>
 
 namespace ft
@@ -105,6 +108,7 @@ void Flatten::Draw(int pos, const s2::RenderParams& rp)
 	assert(m_nodes[0].m_count == m_nodes_sz);
 
 	const Node* node_ptr = &m_nodes[pos];
+	cooking::DisplayList dlist(mm::MemoryPool::Instance()->GetFreelistAlloc(), -1);
 	int start_layer = node_ptr->m_layer;
 	int prev_layer = start_layer - 1;
 	for (int i = 0, n = node_ptr->m_count; i < n; )
@@ -147,7 +151,7 @@ void Flatten::Draw(int pos, const s2::RenderParams& rp)
 		rp_child->mt = prev_mt;
 		rp_child->color = prev_col;
 		rp_child->actor = actor;
-		if (spr->GetSymbol()->DrawFlatten(*rp_child, spr)) {
+		if (spr->GetSymbol()->DrawFlatten(&dlist, *rp_child, spr)) {
 			i += node_ptr->m_count;
 			node_ptr += node_ptr->m_count;
 		} else {
@@ -157,6 +161,8 @@ void Flatten::Draw(int pos, const s2::RenderParams& rp)
 	}
 
 	s2::RenderParamsPool::Instance()->Push(rp_child);
+
+	dlist.Replay();
 }
 
 void Flatten::SetFrame(int pos, bool force, int frame)
