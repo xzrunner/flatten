@@ -7,6 +7,8 @@
 #include <vector>
 #include <memory>
 
+namespace cooking { class DisplayList; }
+
 namespace ft
 {
 
@@ -15,7 +17,8 @@ class FTList;
 class BuildListVisitor : public s2::SpriteVisitor
 {
 public:
-	BuildListVisitor(std::shared_ptr<FTList> flatten);
+	BuildListVisitor(std::shared_ptr<FTList> flatten, 
+		std::shared_ptr<cooking::DisplayList> dlist);
 
 	virtual s2::VisitResult Visit(const s2::Sprite* spr, const s2::SprVisitorParams& params);
 
@@ -24,6 +27,7 @@ public:
 
 private:
 	std::shared_ptr<FTList> m_flatten;
+	std::shared_ptr<cooking::DisplayList> m_dlist;
 
 	std::vector<int> m_curr_path;
 

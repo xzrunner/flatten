@@ -23,21 +23,22 @@ public:
 	FTList(FTList&&) = delete;
 	~FTList();
 
-	bool Update(int pos, bool force);
+	bool Update(int pos, bool force, std::shared_ptr<cooking::DisplayList> dlist);
 	void DrawForward(int pos, const s2::RenderParams& rp);
 	void DrawDeferred(int pos, const s2::RenderParams& rp,
-		std::unique_ptr<cooking::DisplayList>& dlist);
+		std::shared_ptr<cooking::DisplayList>& dlist);
 
-	void SetFrame(int pos, bool force, int frame);
+	void SetFrame(int pos, bool force, int frame,
+		std::shared_ptr<cooking::DisplayList> dlist);
 
 	void SetDirty() { m_dirty = true; }
 
 private:
-	void Build();
+	void Build(std::shared_ptr<cooking::DisplayList> dlist);
 
 	void InitNeedUpdateFlag();
 
-	bool CheckFirst(int pos);
+	bool CheckFirst(int pos, std::shared_ptr<cooking::DisplayList> dlist);
 
 private:
 	static const int MAX_LAYER = 16;

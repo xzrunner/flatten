@@ -40,9 +40,9 @@ FTList::~FTList()
 	}
 }
 
-bool FTList::Update(int pos, bool force)
+bool FTList::Update(int pos, bool force, std::shared_ptr<cooking::DisplayList> dlist)
 {
-	if (!CheckFirst(pos)) {
+	if (!CheckFirst(pos, dlist)) {
 		return false;
 	}
 
@@ -92,7 +92,7 @@ bool FTList::Update(int pos, bool force)
 
 void FTList::DrawForward(int pos, const s2::RenderParams& rp)
 {
-	if (!CheckFirst(pos)) {
+	if (!CheckFirst(pos, nullptr)) {
 		return;
 	}
 
@@ -163,17 +163,45 @@ void FTList::DrawForward(int pos, const s2::RenderParams& rp)
 	s2::RenderParamsPool::Instance()->Push(rp_child);
 }
 
+static int COUNT = 0;
+
 void FTList::DrawDeferred(int pos, const s2::RenderParams& rp,
-	                      std::unique_ptr<cooking::DisplayList>& dlist)
+	                      std::shared_ptr<cooking::DisplayList>& dlist)
 {
-	if (!CheckFirst(pos)) {
+	if (!CheckFirst(pos, dlist)) {
 		return;
 	}
 
-	//if (dlist && !dlist->Empty()) {
-	//	dlist->Replay();
+	FTNode* node_ptr = &m_nodes[pos];
+	int node_count = node_ptr->m_count;
+
+	++COUNT;
+
+	if (dlist && !dlist->Empty() && COUNT > 5000) 
+	{
+		int d_begin, d_end;
+		if (pos == 0) {
+			d_begin = d_end = -1;
+		} else {
+			d_begin = node_ptr->m_dlist_pos;
+			d_end = d_begin;
+			for (int i = pos; i < node_count; ++i, ++node_ptr) {
+				d_end += node_ptr->m_dlist_count;
+			}
+		}
+		if (d_begin < 0 || d_begin < d_end) {
+			dlist->Replay(d_begin, d_end);
+		}
+		return;
+	}
+
+	//if (COUNT > 5000) {
 	//	return;
 	//}
+
+	if (COUNT == 5000) {
+		int zz = 0;
+	}
 
 	sm::Matrix2D stk_mat[MAX_LAYER];
 	s2::RenderColor stk_col[MAX_LAYER];
@@ -188,7 +216,7 @@ void FTList::DrawDeferred(int pos, const s2::RenderParams& rp,
 	assert(m_nodes[0].m_count == m_nodes_sz);
 
 	cooking::DisplayList dlist_tmp(mm::MemoryPool::Instance()->GetFreelistAlloc());
-	const FTNode* node_ptr = &m_nodes[pos];
+	node_ptr = &m_nodes[pos];
 	int start_layer = node_ptr->m_layer;
 	int prev_layer = start_layer - 1;
 	for (int i = 0, n = node_ptr->m_count; i < n; )
@@ -231,7 +259,12 @@ void FTList::DrawDeferred(int pos, const s2::RenderParams& rp,
 		rp_child->mt = prev_mt;
 		rp_child->color = prev_col;
 		rp_child->actor = actor;
-		if (spr->GetSymbol()->DrawFlatten(&dlist_tmp, *rp_child, spr)) {
+
+		node_ptr->m_dlist_pos = static_cast<uint16_t>(dlist_tmp.Size());
+		bool draw = spr->GetSymbol()->DrawFlatten(&dlist_tmp, *rp_child, spr);
+		node_ptr->m_dlist_count = static_cast<uint16_t>(dlist_tmp.Size()) - node_ptr->m_dlist_pos;
+
+		if (draw) {
 			i += node_ptr->m_count;
 			node_ptr += node_ptr->m_count;
 		} else {
@@ -242,19 +275,18 @@ void FTList::DrawDeferred(int pos, const s2::RenderParams& rp,
 
 	s2::RenderParamsPool::Instance()->Push(rp_child);
 
-	if (dlist) {
+	if (dlist && pos == 0) {
 		*dlist = std::move(dlist_tmp);
-		dlist->Replay();
-	} else {
-		dlist_tmp.Replay();
+//		dlist->Replay();
 	}
 
-//	dlist_tmp.Replay();
+	dlist_tmp.Replay(-1, -1);
 }
 
-void FTList::SetFrame(int pos, bool force, int frame)
+void FTList::SetFrame(int pos, bool force, int frame,
+	                  std::shared_ptr<cooking::DisplayList> dlist)
 {
-	if (!CheckFirst(pos)) {
+	if (!CheckFirst(pos, dlist)) {
 		return;
 	}
 
@@ -312,7 +344,7 @@ void FTList::SetFrame(int pos, bool force, int frame)
 	}
 }
 
-void FTList::Build()
+void FTList::Build(std::shared_ptr<cooking::DisplayList> dlist)
 {
 	int count = 0;
 	{
@@ -334,7 +366,7 @@ void FTList::Build()
 	s2::SprVisitorParams params;
 	params.actor = m_root;
 
-	BuildListVisitor visitor(shared_from_this());
+	BuildListVisitor visitor(shared_from_this(), dlist);
 	m_root->GetSpr()->Traverse(visitor, params);
 
 	InitNeedUpdateFlag();
@@ -379,13 +411,13 @@ void FTList::InitNeedUpdateFlag()
 	}
 }
 
-bool FTList::CheckFirst(int pos)
+bool FTList::CheckFirst(int pos, std::shared_ptr<cooking::DisplayList> dlist)
 {
 	if (pos < 0) {
 		return false;
 	}
 	if (m_dirty) {
-		Build();
+		Build(dlist);
 	}
 	if (m_nodes_sz == 0 || pos >= m_nodes_sz) {
 		return false;

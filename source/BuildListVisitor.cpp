@@ -10,8 +10,10 @@
 namespace ft
 {
 
-BuildListVisitor::BuildListVisitor(std::shared_ptr<FTList> flatten)
+BuildListVisitor::BuildListVisitor(std::shared_ptr<FTList> flatten,
+	                               std::shared_ptr<cooking::DisplayList> dlist)
 	: m_flatten(flatten)
+	, m_dlist(dlist)
 {
 }
 
@@ -20,9 +22,13 @@ s2::VisitResult BuildListVisitor::Visit(const s2::Sprite* spr, const s2::SprVisi
 	assert(m_flatten->m_nodes_cap > 0 && m_flatten->m_nodes_sz < m_flatten->m_nodes_cap);
 	if (params.actor) 
 	{
+		s2::Actor* actor = const_cast<s2::Actor*>(params.actor);
+
 		int pos = m_flatten->m_nodes_sz;
 		m_flatten->m_nodes[m_flatten->m_nodes_sz++].Init(params.actor);
-		const_cast<s2::Actor*>(params.actor)->SetFlatten(m_flatten, pos);
+		actor->SetFlatten(m_flatten, pos);
+
+		actor->SetDisplayList(m_dlist);
 	} 
 	else 
 	{
