@@ -1,5 +1,6 @@
-#include "flatten/Flatten.h"
-#include "flatten/BuildFlattenVisitor.h"
+#include "flatten/List.h"
+#include "flatten/Node.h"
+#include "flatten/BuildListVisitor.h"
 #include "flatten/CountNodesVisitor.h"
 
 #include <sprite2/SprVisitorParams.h>
@@ -22,7 +23,7 @@
 namespace ft
 {
 
-Flatten::Flatten(s2::Actor* root)
+List::List(s2::Actor* root)
 	: m_root(root)
 	, m_nodes(nullptr)
 	, m_nodes_sz(0)
@@ -32,14 +33,14 @@ Flatten::Flatten(s2::Actor* root)
 {
 }
 
-Flatten::~Flatten()
+List::~List()
 {
 	if (m_nodes) {
 		free(m_nodes);
 	}
 }
 
-bool Flatten::Update(int pos, bool force)
+bool List::Update(int pos, bool force)
 {
 	if (!CheckFirst(pos)) {
 		return false;
@@ -89,7 +90,7 @@ bool Flatten::Update(int pos, bool force)
 	return ret;
 }
 
-void Flatten::Draw(int pos, const s2::RenderParams& rp)
+void List::DrawForward(int pos, const s2::RenderParams& rp)
 {
 	if (!CheckFirst(pos)) {
 		return;
@@ -108,7 +109,6 @@ void Flatten::Draw(int pos, const s2::RenderParams& rp)
 	assert(m_nodes[0].m_count == m_nodes_sz);
 
 	const Node* node_ptr = &m_nodes[pos];
-	cooking::DisplayList dlist(mm::MemoryPool::Instance()->GetFreelistAlloc(), -1);
 	int start_layer = node_ptr->m_layer;
 	int prev_layer = start_layer - 1;
 	for (int i = 0, n = node_ptr->m_count; i < n; )
@@ -151,7 +151,82 @@ void Flatten::Draw(int pos, const s2::RenderParams& rp)
 		rp_child->mt = prev_mt;
 		rp_child->color = prev_col;
 		rp_child->actor = actor;
-		if (spr->GetSymbol()->DrawFlatten(&dlist, *rp_child, spr)) {
+		if (spr->GetSymbol()->DrawFlatten(nullptr, *rp_child, spr)) {
+			i += node_ptr->m_count;
+			node_ptr += node_ptr->m_count;
+		} else {
+			++i;
+			++node_ptr;
+		}
+	}
+
+	s2::RenderParamsPool::Instance()->Push(rp_child);
+}
+
+void List::DrawDeferred(int pos, const s2::RenderParams& rp,
+	                       std::unique_ptr<cooking::DisplayList>& dlist)
+{
+	if (!CheckFirst(pos)) {
+		return;
+	}
+
+	sm::Matrix2D stk_mat[MAX_LAYER];
+	s2::RenderColor stk_col[MAX_LAYER];
+	int stk_sz = 0;
+
+	sm::Matrix2D prev_mt = rp.mt;
+	s2::RenderColor prev_col = rp.color;
+
+	s2::RenderParams* rp_child = s2::RenderParamsPool::Instance()->Pop();
+	*rp_child = rp;
+
+	assert(m_nodes[0].m_count == m_nodes_sz);
+
+	const Node* node_ptr = &m_nodes[pos];
+	cooking::DisplayList dlist_tmp(mm::MemoryPool::Instance()->GetFreelistAlloc());
+	int start_layer = node_ptr->m_layer;
+	int prev_layer = start_layer - 1;
+	for (int i = 0, n = node_ptr->m_count; i < n; )
+	{
+		const s2::Sprite* spr = nullptr;
+		const s2::Actor* actor = nullptr;
+
+		if (node_ptr->IsDataSpr()) {
+			spr = static_cast<const s2::Sprite*>(node_ptr->m_data);
+		} else {
+			actor = static_cast<const s2::Actor*>(node_ptr->m_data);
+			spr = actor->GetSpr();
+		}
+
+		bool visible = actor ? actor->IsVisible() : spr->IsVisible();
+		if (!visible) {
+			i += node_ptr->m_count;
+			node_ptr += node_ptr->m_count;
+			continue;
+		}
+
+		if (node_ptr->m_layer == prev_layer) {
+			;
+		} else if (node_ptr->m_layer == prev_layer + 1) {
+			stk_mat[stk_sz] = prev_mt;
+			stk_col[stk_sz] = prev_col;
+			++stk_sz;
+		} else {
+			assert(node_ptr->m_layer < prev_layer);
+			while (stk_sz > node_ptr->m_layer + 1 - start_layer) {
+				--stk_sz;
+			}
+		}
+		assert(node_ptr->m_layer + 1 - start_layer == stk_sz);
+
+		s2::Utility::PrepareMat(stk_mat[stk_sz - 1], spr, actor, prev_mt);
+		s2::Utility::PrepareColor(stk_col[stk_sz - 1], spr, actor, prev_col);
+		prev_layer = node_ptr->m_layer;
+
+		rp_child->mt = prev_mt;
+		rp_child->color = prev_col;
+		rp_child->actor = actor;
+		if (spr->GetSymbol()->DrawFlatten(&dlist_tmp, *rp_child, spr)) {
 			i += node_ptr->m_count;
 			node_ptr += node_ptr->m_count;
 		} else {
@@ -162,10 +237,10 @@ void Flatten::Draw(int pos, const s2::RenderParams& rp)
 
 	s2::RenderParamsPool::Instance()->Push(rp_child);
 
-	dlist.Replay();
+	dlist_tmp.Replay();
 }
 
-void Flatten::SetFrame(int pos, bool force, int frame)
+void List::SetFrame(int pos, bool force, int frame)
 {
 	if (!CheckFirst(pos)) {
 		return;
@@ -225,7 +300,7 @@ void Flatten::SetFrame(int pos, bool force, int frame)
 	}
 }
 
-void Flatten::Build()
+void List::Build()
 {
 	int count = 0;
 	{
@@ -247,7 +322,7 @@ void Flatten::Build()
 	s2::SprVisitorParams params;
 	params.actor = m_root;
 
-	BuildFlattenVisitor visitor(shared_from_this());
+	BuildListVisitor visitor(shared_from_this());
 	m_root->GetSpr()->Traverse(visitor, params);
 
 	InitNeedUpdateFlag();
@@ -257,7 +332,7 @@ void Flatten::Build()
 	m_dirty = false;
 }
 
-void Flatten::InitNeedUpdateFlag()
+void List::InitNeedUpdateFlag()
 {
 	if (m_nodes_sz == 0) {
 		return;
@@ -292,7 +367,7 @@ void Flatten::InitNeedUpdateFlag()
 	}
 }
 
-bool Flatten::CheckFirst(int pos)
+bool List::CheckFirst(int pos)
 {
 	if (pos < 0) {
 		return false;
@@ -304,40 +379,6 @@ bool Flatten::CheckFirst(int pos)
 		return false;
 	}
 	return true;
-}
-
-/************************************************************************/
-/* class Flatten::Node                                                 */
-/************************************************************************/
-
-Flatten::Node::Node()
-{
-	Init();
-}
-
-void Flatten::Node::Init(const s2::Sprite* spr)
-{
-	Init();
-
-	m_data = spr;
-	SetDataSpr(true);
-}
-
-void Flatten::Node::Init(const s2::Actor* actor)
-{
-	Init();
-
-	m_data = actor;
-	SetDataSpr(false);
-}
-
-void Flatten::Node::Init()
-{
-	m_data = nullptr;
-	m_parent = INVALID_ID;
-	m_count = 0;
-	m_layer = 0;
-	m_flags = 0;
 }
 
 }
