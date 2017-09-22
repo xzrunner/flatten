@@ -13,15 +13,15 @@ namespace s2 { class Sprite; class Actor; class RenderParams; }
 namespace ft
 {
 
-class Node;
+class FTNode;
 
-class List : public std::enable_shared_from_this<List>
+class FTList : public std::enable_shared_from_this<FTList>
 {
 public:
-	List(s2::Actor* root);
-	List(const List&) = delete;
-	List(List&&) = delete;
-	~List();
+	FTList(s2::Actor* root);
+	FTList(const FTList&) = delete;
+	FTList(FTList&&) = delete;
+	~FTList();
 
 	bool Update(int pos, bool force);
 	void DrawForward(int pos, const s2::RenderParams& rp);
@@ -45,7 +45,7 @@ private:
 private:
 	s2::Actor* m_root;
 
-	Node* m_nodes;
+	FTNode* m_nodes;
 	int m_nodes_sz, m_nodes_cap;
 
 	int m_max_layer;
@@ -54,7 +54,7 @@ private:
 
 	friend class BuildListVisitor;
 
-}; // List
+}; // FTList
 
 }
 

@@ -1,6 +1,6 @@
 #include "flatten/BuildListVisitor.h"
-#include "flatten/List.h"
-#include "flatten/Node.h"
+#include "flatten/FTList.h"
+#include "flatten/FTNode.h"
 
 #include <sprite2/SprVisitorParams.h>
 #include <sprite2/S2_Actor.h>
@@ -10,7 +10,7 @@
 namespace ft
 {
 
-BuildListVisitor::BuildListVisitor(std::shared_ptr<List> flatten)
+BuildListVisitor::BuildListVisitor(std::shared_ptr<FTList> flatten)
 	: m_flatten(flatten)
 {
 }
@@ -28,7 +28,7 @@ s2::VisitResult BuildListVisitor::Visit(const s2::Sprite* spr, const s2::SprVisi
 	{
 		m_flatten->m_nodes[m_flatten->m_nodes_sz++].Init(spr);
 	}
-	Node& node = m_flatten->m_nodes[m_flatten->m_nodes_sz - 1];
+	FTNode& node = m_flatten->m_nodes[m_flatten->m_nodes_sz - 1];
 	if (m_curr_path.empty()) {
 		node.m_parent = -1;
 	} else {
@@ -49,7 +49,7 @@ s2::VisitResult BuildListVisitor::VisitChildrenEnd(const s2::Sprite* spr, const 
 	m_curr_path.pop_back();
 	int tot = m_flatten->m_nodes_sz;
 	assert(tot >= curr);
-	Node& node = m_flatten->m_nodes[curr];
+	FTNode& node = m_flatten->m_nodes[curr];
 	node.m_count = tot - curr;
 	node.m_layer = static_cast<uint16_t>(m_curr_path.size());
 	if (node.m_layer > m_flatten->m_max_layer) {

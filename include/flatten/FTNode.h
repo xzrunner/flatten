@@ -10,12 +10,12 @@ namespace s2 { class Sprite; class Actor; }
 namespace ft
 {
 
-class Node
+class FTNode
 {
 public:
-	Node() { Init(); }
-	Node(const Node&) = delete;
-	void operator=(const Node&) = delete;
+	FTNode() { Init(); }
+	FTNode(const FTNode&) = delete;
+	void operator=(const FTNode&) = delete;
 
 	void Init(const s2::Sprite* spr) 
 	{
@@ -69,10 +69,10 @@ private:
 	uint16_t m_dlist_pos;
 	uint16_t m_dlist_count;
 
-	friend class List;
+	friend class FTList;
 	friend class BuildListVisitor;
 
-}; // Node
+}; // FTNode
 
 }
 

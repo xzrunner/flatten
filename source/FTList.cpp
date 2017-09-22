@@ -1,5 +1,5 @@
-#include "flatten/List.h"
-#include "flatten/Node.h"
+#include "flatten/FTList.h"
+#include "flatten/FTNode.h"
 #include "flatten/BuildListVisitor.h"
 #include "flatten/CountNodesVisitor.h"
 
@@ -23,7 +23,7 @@
 namespace ft
 {
 
-List::List(s2::Actor* root)
+FTList::FTList(s2::Actor* root)
 	: m_root(root)
 	, m_nodes(nullptr)
 	, m_nodes_sz(0)
@@ -33,14 +33,14 @@ List::List(s2::Actor* root)
 {
 }
 
-List::~List()
+FTList::~FTList()
 {
 	if (m_nodes) {
 		free(m_nodes);
 	}
 }
 
-bool List::Update(int pos, bool force)
+bool FTList::Update(int pos, bool force)
 {
 	if (!CheckFirst(pos)) {
 		return false;
@@ -49,7 +49,7 @@ bool List::Update(int pos, bool force)
 	assert(m_nodes[0].m_count == m_nodes_sz);
 
 	bool ret = false;
-	const Node* node_ptr = &m_nodes[pos];
+	const FTNode* node_ptr = &m_nodes[pos];
 	for (int i = 0, n = node_ptr->m_count; i < n; )
 	{
 		if (!node_ptr->IsNeedUpdate()) {
@@ -90,7 +90,7 @@ bool List::Update(int pos, bool force)
 	return ret;
 }
 
-void List::DrawForward(int pos, const s2::RenderParams& rp)
+void FTList::DrawForward(int pos, const s2::RenderParams& rp)
 {
 	if (!CheckFirst(pos)) {
 		return;
@@ -108,7 +108,7 @@ void List::DrawForward(int pos, const s2::RenderParams& rp)
 
 	assert(m_nodes[0].m_count == m_nodes_sz);
 
-	const Node* node_ptr = &m_nodes[pos];
+	const FTNode* node_ptr = &m_nodes[pos];
 	int start_layer = node_ptr->m_layer;
 	int prev_layer = start_layer - 1;
 	for (int i = 0, n = node_ptr->m_count; i < n; )
@@ -163,12 +163,17 @@ void List::DrawForward(int pos, const s2::RenderParams& rp)
 	s2::RenderParamsPool::Instance()->Push(rp_child);
 }
 
-void List::DrawDeferred(int pos, const s2::RenderParams& rp,
-	                       std::unique_ptr<cooking::DisplayList>& dlist)
+void FTList::DrawDeferred(int pos, const s2::RenderParams& rp,
+	                      std::unique_ptr<cooking::DisplayList>& dlist)
 {
 	if (!CheckFirst(pos)) {
 		return;
 	}
+
+	//if (dlist && !dlist->Empty()) {
+	//	dlist->Replay();
+	//	return;
+	//}
 
 	sm::Matrix2D stk_mat[MAX_LAYER];
 	s2::RenderColor stk_col[MAX_LAYER];
@@ -182,8 +187,8 @@ void List::DrawDeferred(int pos, const s2::RenderParams& rp,
 
 	assert(m_nodes[0].m_count == m_nodes_sz);
 
-	const Node* node_ptr = &m_nodes[pos];
 	cooking::DisplayList dlist_tmp(mm::MemoryPool::Instance()->GetFreelistAlloc());
+	const FTNode* node_ptr = &m_nodes[pos];
 	int start_layer = node_ptr->m_layer;
 	int prev_layer = start_layer - 1;
 	for (int i = 0, n = node_ptr->m_count; i < n; )
@@ -237,10 +242,17 @@ void List::DrawDeferred(int pos, const s2::RenderParams& rp,
 
 	s2::RenderParamsPool::Instance()->Push(rp_child);
 
-	dlist_tmp.Replay();
+	if (dlist) {
+		*dlist = std::move(dlist_tmp);
+		dlist->Replay();
+	} else {
+		dlist_tmp.Replay();
+	}
+
+//	dlist_tmp.Replay();
 }
 
-void List::SetFrame(int pos, bool force, int frame)
+void FTList::SetFrame(int pos, bool force, int frame)
 {
 	if (!CheckFirst(pos)) {
 		return;
@@ -250,7 +262,7 @@ void List::SetFrame(int pos, bool force, int frame)
 
 	assert(m_nodes[0].m_count == m_nodes_sz);
 
-	const Node* node_ptr = &m_nodes[pos];
+	const FTNode* node_ptr = &m_nodes[pos];
 	for (int i = 0, n = node_ptr->m_count; i < n; )
 	{
 		if (!node_ptr->IsNeedUpdate()) {
@@ -300,7 +312,7 @@ void List::SetFrame(int pos, bool force, int frame)
 	}
 }
 
-void List::Build()
+void FTList::Build()
 {
 	int count = 0;
 	{
@@ -314,7 +326,7 @@ void List::Build()
 	}
 
 	if (!m_nodes || m_nodes_cap != count) {
-		m_nodes = (Node*)realloc(m_nodes, sizeof(Node) * count);
+		m_nodes = (FTNode*)realloc(m_nodes, sizeof(FTNode) * count);
 	}
 	m_nodes_cap = count;
 	m_nodes_sz = 0;
@@ -332,13 +344,13 @@ void List::Build()
 	m_dirty = false;
 }
 
-void List::InitNeedUpdateFlag()
+void FTList::InitNeedUpdateFlag()
 {
 	if (m_nodes_sz == 0) {
 		return;
 	}
 
-	Node* node_ptr = &m_nodes[m_nodes_sz - 1];
+	FTNode* node_ptr = &m_nodes[m_nodes_sz - 1];
 	for (int i = m_nodes_sz - 1; i >= 0; --i, --node_ptr)
 	{
 		if (node_ptr->IsNeedUpdate()) {
@@ -356,10 +368,10 @@ void List::InitNeedUpdateFlag()
 		{
 			node_ptr->SetNeedUpdate(true);
 			uint16_t parent = node_ptr->m_parent;
-			while (parent != Node::INVALID_ID)
+			while (parent != FTNode::INVALID_ID)
 			{
 				assert(parent >= 0 && parent < m_nodes_sz);
-				Node& curr = m_nodes[parent];
+				FTNode& curr = m_nodes[parent];
 				curr.SetNeedUpdate(true);
 				parent = curr.m_parent;
 			}
@@ -367,7 +379,7 @@ void List::InitNeedUpdateFlag()
 	}
 }
 
-bool List::CheckFirst(int pos)
+bool FTList::CheckFirst(int pos)
 {
 	if (pos < 0) {
 		return false;
