@@ -41,17 +41,21 @@ private:
 		m_count = 0;
 		m_layer = 0;
 		m_flags = 0;
-		m_dlist_pos = 0;
+		m_dlist_pos   = 0;
 		m_dlist_count = 0;
+
+		SetDrawlistDirty(true);
 	}
 
 private:
-	static const uint16_t FLAG_DATA_SPR    = 0x0001;
-	static const uint16_t FLAG_NEED_UPDATE = 0x0002;
+	static const uint16_t FLAG_DATA_SPR       = 0x0001;
+	static const uint16_t FLAG_UPDATE_DIRTY   = 0x0002;
+	static const uint16_t FLAG_DRAWLIST_DIRTY = 0x0004;
 
 public:
 	S2_FLAG_METHOD(DataSpr, FLAG_DATA_SPR)
-	S2_FLAG_METHOD(NeedUpdate, FLAG_NEED_UPDATE)
+	S2_FLAG_METHOD(UpdateDirty, FLAG_UPDATE_DIRTY)
+	S2_FLAG_METHOD(DrawlistDirty, FLAG_DRAWLIST_DIRTY)
 
 private:
 	static const uint16_t INVALID_ID = 0xffff;

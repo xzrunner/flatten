@@ -40,6 +40,8 @@ private:
 
 	bool CheckFirst(int pos, std::shared_ptr<cooking::DisplayList> dlist);
 
+	int CalcDListAllCount(const cooking::DisplayList& dlist, int pos) const;
+
 private:
 	static const int MAX_LAYER = 16;
 

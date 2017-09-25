@@ -28,7 +28,9 @@ s2::VisitResult BuildListVisitor::Visit(const s2::Sprite* spr, const s2::SprVisi
 		m_flatten->m_nodes[m_flatten->m_nodes_sz++].Init(params.actor);
 		actor->SetFlatten(m_flatten, pos);
 
-		actor->SetDisplayList(m_dlist);
+		if (m_dlist) {
+			actor->SetDisplayList(m_dlist);
+		}
 	} 
 	else 
 	{
