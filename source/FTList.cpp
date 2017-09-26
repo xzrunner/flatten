@@ -15,7 +15,6 @@
 #include <sprite2/AnimSprite.h>
 #include <sprite2/UpdateParams.h>
 
-#include <memmgr/MemoryPool.h>
 #include <cooking/DisplayList.h>
 
 #include <assert.h>

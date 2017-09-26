@@ -9,6 +9,7 @@ LOCAL_MODULE := flatten
 LOCAL_C_INCLUDES  := \
 	${FLATTEN_SRC_PATH}/include \
 	${SPRITE2_SRC_PATH}/include \
+	${COOKING_SRC_PATH}/include \
 	${LOGGER_SRC_PATH} \
 	${CU_SRC_PATH} \
 	${SM_SRC_PATH} \
