@@ -189,7 +189,7 @@ void FTList::DrawDeferred(int pos, const s2::RenderParams& rp,
 
 	assert(m_nodes[0].m_count == m_nodes_sz);
 
-	cooking::DisplayList dlist_tmp(mm::MemoryPool::Instance()->GetFreelistAlloc());
+	cooking::DisplayList dlist_tmp;
 
 	FTNode* node_ptr = &m_nodes[pos];
 
@@ -293,7 +293,7 @@ void FTList::DrawDeferred(int pos, const s2::RenderParams& rp,
 		if (old_pos == 0) {
 			*dlist = dlist_tmp;
 		} else {
-			cooking::DisplayList tmp(mm::MemoryPool::Instance()->GetFreelistAlloc());
+			cooking::DisplayList tmp;
 			const ft::FTNode& node = m_nodes[old_pos];
 			tmp.DeepCopyFrom(*dlist, 0, old_dlist_pos);
 			tmp.DeepCopyFrom(dlist_tmp, 0, -1);
