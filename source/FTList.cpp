@@ -60,7 +60,8 @@ bool FTList::Update(int pos, bool force, std::shared_ptr<cooking::DisplayList> d
 
 		// todo: up from root
 
-		node_ptr->SetDrawlistDirty(true);
+		bool dirty = false;
+		const FTNode* curr_node_ptr = node_ptr;
 
 		if (node_ptr->IsDataSpr()) 
 		{
@@ -70,7 +71,7 @@ bool FTList::Update(int pos, bool force, std::shared_ptr<cooking::DisplayList> d
 				i += node_ptr->m_count;
 				node_ptr += node_ptr->m_count;
 			} else {
-				const_cast<s2::Sprite*>(spr)->AutoUpdate(nullptr);
+				dirty = const_cast<s2::Sprite*>(spr)->AutoUpdate(nullptr);
 				++i;
 				++node_ptr;
 			}
@@ -83,11 +84,15 @@ bool FTList::Update(int pos, bool force, std::shared_ptr<cooking::DisplayList> d
 				i += node_ptr->m_count;
 				node_ptr += node_ptr->m_count;
 			} else {
-				const_cast<s2::Sprite*>(actor->GetSpr())->AutoUpdate(actor);
+				dirty = const_cast<s2::Sprite*>(actor->GetSpr())->AutoUpdate(actor);
 				++i;
 				++node_ptr;
 			}
-		}		
+		}
+
+		if (dirty) {
+			SetDrawlistDirty(curr_node_ptr);
+		}
 	}
 	return ret;
 }
@@ -184,8 +189,7 @@ void FTList::DrawDeferred(int pos, const s2::RenderParams& rp,
 
 	assert(m_nodes[0].m_count == m_nodes_sz);
 
-	int tot_count = CalcDListAllCount(*dlist, pos);
-	cooking::DisplayList dlist_tmp(mm::MemoryPool::Instance()->GetFreelistAlloc(), tot_count);
+	cooking::DisplayList dlist_tmp(mm::MemoryPool::Instance()->GetFreelistAlloc());
 
 	FTNode* node_ptr = &m_nodes[pos];
 
@@ -283,24 +287,24 @@ void FTList::DrawDeferred(int pos, const s2::RenderParams& rp,
 			pos += node_ptr->m_dlist_count;
 		}
 
+		int dlist_tmp_sz = dlist_tmp.Size();
+
 		// rebuild dlist
 		if (old_pos == 0) {
-			*dlist = std::move(dlist_tmp);
-			dlist_tmp.MakeAllocEmpty();
+			*dlist = dlist_tmp;
 		} else {
-			cooking::DisplayList tmp(mm::MemoryPool::Instance()->GetFreelistAlloc(), tot_count);
+			cooking::DisplayList tmp(mm::MemoryPool::Instance()->GetFreelistAlloc());
 			const ft::FTNode& node = m_nodes[old_pos];
 			tmp.DeepCopyFrom(*dlist, 0, old_dlist_pos);
 			tmp.DeepCopyFrom(dlist_tmp, 0, -1);
 			tmp.DeepCopyFrom(*dlist, old_dlist_pos + old_dlist_count, -1);
 
-			*dlist = std::move(tmp);
-			tmp.MakeAllocEmpty();
+			*dlist = tmp;
 		}
 		
 		// draw
-		if (!dlist_tmp.Empty()) {
-			dlist->Replay(old_dlist_pos, old_dlist_pos + dlist_tmp.Size());
+		if (dlist_tmp_sz > 0) {
+			dlist->Replay(old_dlist_pos, old_dlist_pos + dlist_tmp_sz);
 		}
 	}
 	else
@@ -329,7 +333,8 @@ void FTList::SetFrame(int pos, bool force, int frame,
 			continue;
 		}
 
-		node_ptr->SetDrawlistDirty(true);
+		bool dirty = false;
+		const FTNode* curr_node_ptr = node_ptr;
 
 		if (node_ptr->IsDataSpr())
 		{
@@ -345,7 +350,7 @@ void FTList::SetFrame(int pos, bool force, int frame,
 			{
 				const s2::AnimSprite* anim_spr = VI_DOWNCASTING<const s2::AnimSprite*>(spr);
 				params.SetActor(nullptr);
-				const_cast<s2::AnimSprite*>(anim_spr)->SetFrame(params, frame);
+				dirty = const_cast<s2::AnimSprite*>(anim_spr)->SetFrame(params, frame);
 				++i;
 				++node_ptr;
 			}
@@ -364,10 +369,14 @@ void FTList::SetFrame(int pos, bool force, int frame,
 			{
 				const s2::AnimSprite* anim_spr = VI_DOWNCASTING<const s2::AnimSprite*>(actor->GetSpr());
 				params.SetActor(actor);
-				const_cast<s2::AnimSprite*>(anim_spr)->SetFrame(params, frame);
+				dirty = const_cast<s2::AnimSprite*>(anim_spr)->SetFrame(params, frame);
 				++i;
 				++node_ptr;
 			}
+		}
+
+		if (dirty) {
+			SetDrawlistDirty(curr_node_ptr);
 		}
 	}
 }
@@ -472,6 +481,23 @@ int FTList::CalcDListAllCount(const cooking::DisplayList& dlist, int pos) const
 		}
 	}
 	return count;
+}
+
+void FTList::SetDrawlistDirty(const FTNode* node)
+{
+	// self & children
+	const FTNode* ptr = node;
+	for (int j = 0; j < node->m_count; ++j, ++ptr) {
+		ptr->SetDrawlistDirty(true);
+	}
+
+	// parents
+	uint16_t parent = node->m_parent;
+	while (parent != FTNode::INVALID_ID) {
+		const FTNode* ptr_parent = &m_nodes[parent];
+		ptr_parent->SetDrawlistDirty(true);
+		parent = ptr_parent->m_parent;
+	}
 }
 
 }
