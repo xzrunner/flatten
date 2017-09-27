@@ -17,8 +17,8 @@ class FTList;
 class BuildListVisitor : public s2::SpriteVisitor
 {
 public:
-	BuildListVisitor(std::shared_ptr<FTList> flatten, 
-		std::shared_ptr<cooking::DisplayList> dlist);
+	BuildListVisitor(const std::shared_ptr<FTList>& flatten, 
+		const std::shared_ptr<cooking::DisplayList>& dlist);
 
 	virtual s2::VisitResult Visit(const s2::Sprite* spr, const s2::SprVisitorParams& params);
 
@@ -26,8 +26,8 @@ public:
 	virtual s2::VisitResult VisitChildrenEnd(const s2::Sprite* spr, const s2::SprVisitorParams& params);
 
 private:
-	std::shared_ptr<FTList> m_flatten;
-	std::shared_ptr<cooking::DisplayList> m_dlist;
+	const std::shared_ptr<FTList>& m_flatten;
+	const std::shared_ptr<cooking::DisplayList>& m_dlist;
 
 	std::vector<int> m_curr_path;
 

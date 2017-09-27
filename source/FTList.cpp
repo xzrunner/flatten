@@ -39,7 +39,7 @@ FTList::~FTList()
 	}
 }
 
-bool FTList::Update(int pos, bool force, std::shared_ptr<cooking::DisplayList> dlist)
+bool FTList::Update(int pos, bool force, const std::shared_ptr<cooking::DisplayList>& dlist)
 {
 	if (!CheckFirst(pos, dlist)) {
 		return false;
@@ -170,7 +170,7 @@ void FTList::DrawForward(int pos, const s2::RenderParams& rp)
 }
 
 void FTList::DrawDeferred(int pos, const s2::RenderParams& rp,
-	                      std::shared_ptr<cooking::DisplayList>& dlist)
+	                      const std::shared_ptr<cooking::DisplayList>& dlist)
 {
 	if (!CheckFirst(pos, dlist)) {
 		return;
@@ -313,7 +313,7 @@ void FTList::DrawDeferred(int pos, const s2::RenderParams& rp,
 }
 
 void FTList::SetFrame(int pos, bool force, int frame,
-	                  std::shared_ptr<cooking::DisplayList> dlist)
+	                  const std::shared_ptr<cooking::DisplayList>& dlist)
 {
 	if (!CheckFirst(pos, dlist)) {
 		return;
@@ -380,7 +380,7 @@ void FTList::SetFrame(int pos, bool force, int frame,
 	}
 }
 
-void FTList::Build(std::shared_ptr<cooking::DisplayList> dlist)
+void FTList::Build(const std::shared_ptr<cooking::DisplayList>& dlist)
 {
 	int count = 0;
 	{
@@ -446,7 +446,7 @@ void FTList::InitNeedUpdateFlag()
 	}
 }
 
-bool FTList::CheckFirst(int pos, std::shared_ptr<cooking::DisplayList> dlist)
+bool FTList::CheckFirst(int pos, const std::shared_ptr<cooking::DisplayList>& dlist)
 {
 	if (pos < 0) {
 		return false;

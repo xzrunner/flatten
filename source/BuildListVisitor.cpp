@@ -10,8 +10,8 @@
 namespace ft
 {
 
-BuildListVisitor::BuildListVisitor(std::shared_ptr<FTList> flatten,
-	                               std::shared_ptr<cooking::DisplayList> dlist)
+BuildListVisitor::BuildListVisitor(const std::shared_ptr<FTList>& flatten,
+	                               const std::shared_ptr<cooking::DisplayList>& dlist)
 	: m_flatten(flatten)
 	, m_dlist(dlist)
 {
