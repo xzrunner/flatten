@@ -157,12 +157,12 @@ void FTList::DrawForward(int pos, const s2::RenderParams& rp)
 		rp_child->mt = prev_mt;
 		rp_child->color = prev_col;
 		rp_child->actor = actor;
-		if (spr->GetSymbol()->DrawFlatten(nullptr, *rp_child, spr)) {
+		if (spr->GetSymbol()->DrawNode(nullptr, *rp_child, spr, *this, i) == s2::RENDER_SKIP) {
+			i++;
+			node_ptr++;
+		} else {
 			i += node_ptr->m_count;
 			node_ptr += node_ptr->m_count;
-		} else {
-			++i;
-			++node_ptr;
 		}
 	}
 
@@ -260,17 +260,17 @@ void FTList::DrawDeferred(int pos, const s2::RenderParams& rp,
 
 		int start = pos_off + static_cast<uint16_t>(dlist_tmp.Size());
 		int old_count = node_ptr->m_dlist_count;
-		bool draw = spr->GetSymbol()->DrawFlatten(&dlist_tmp, *rp_child, spr);
+		s2::RenderReturn ret = spr->GetSymbol()->DrawNode(&dlist_tmp, *rp_child, spr, *this, i);
 		node_ptr->m_dlist_count = pos_off + static_cast<uint16_t>(dlist_tmp.Size()) - start;
 
 		node_ptr->SetDrawlistDirty(false);
 
-		if (draw) {
+		if (ret == s2::RENDER_SKIP) {
+			i++;
+			node_ptr++;
+		} else {
 			i += node_ptr->m_count;
 			node_ptr += node_ptr->m_count;
-		} else {
-			++i;
-			++node_ptr;
 		}
 	}
 
