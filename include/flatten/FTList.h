@@ -32,12 +32,13 @@ public:
 		const std::shared_ptr<cooking::DisplayList>& dlist);
 
 	void SetDirty() { m_dirty = true; }
+	bool IsDirty() const { return m_dirty; }
 
 	const FTNode* GetNode(int pos) const;
 
-private:
 	void Build(const std::shared_ptr<cooking::DisplayList>& dlist);
 
+private:
 	void InitNeedUpdateFlag();
 
 	bool CheckFirst(int pos, const std::shared_ptr<cooking::DisplayList>& dlist);
