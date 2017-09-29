@@ -33,6 +33,8 @@ public:
 
 	void SetDirty() { m_dirty = true; }
 
+	const FTNode* GetNode(int pos) const;
+
 private:
 	void Build(const std::shared_ptr<cooking::DisplayList>& dlist);
 

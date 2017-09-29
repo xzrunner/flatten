@@ -33,6 +33,10 @@ public:
 		SetDataSpr(false);
 	}
 
+	const void* GetData() const { return m_data; }
+
+	int GetCount() const { return m_count; }
+
 private:
 	void Init()
 	{

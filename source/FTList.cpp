@@ -380,6 +380,15 @@ void FTList::SetFrame(int pos, bool force, int frame,
 	}
 }
 
+const FTNode* FTList::GetNode(int pos) const
+{
+	if (pos >= 0 && pos < m_nodes_sz) {
+		return &m_nodes[pos];
+	} else {
+		return nullptr;
+	}
+}
+
 void FTList::Build(const std::shared_ptr<cooking::DisplayList>& dlist)
 {
 	int count = 0;
