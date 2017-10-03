@@ -22,7 +22,12 @@
 namespace ft
 {
 
-FTList::FTList(s2::Actor* root)
+static int TOT_MEM = 0;
+static int TOT_COUNT = 0;
+static int TOT_ALLOC = 0;
+static int TOT_FREE = 0;
+
+FTList::FTList(const s2::ActorPtr& root)
 	: m_root(root)
 	, m_nodes(nullptr)
 	, m_nodes_sz(0)
@@ -35,6 +40,11 @@ FTList::FTList(s2::Actor* root)
 FTList::~FTList()
 {
 	if (m_nodes) {
+		--TOT_COUNT;
+		++TOT_FREE;
+		TOT_MEM -= sizeof(FTNode) * m_nodes_cap;
+//		printf("+++ free, mem %d, count %d, alloc% d, free %d\n", TOT_MEM, TOT_COUNT, TOT_ALLOC, TOT_FREE);
+
 		free(m_nodes);
 	}
 }
@@ -64,26 +74,26 @@ bool FTList::Update(int pos, bool force, const std::shared_ptr<cooking::DisplayL
 
 		if (node_ptr->IsDataSpr()) 
 		{
-			const s2::Sprite* spr = static_cast<const s2::Sprite*>(node_ptr->m_data);
+			s2::SprConstPtr spr(static_cast<const s2::Sprite*>(node_ptr->m_data));
 			if ((!force && !spr->IsInheritUpdate()) ||
 				!spr->IsVisible()) {
 				i += node_ptr->m_count;
 				node_ptr += node_ptr->m_count;
 			} else {
-				dirty = const_cast<s2::Sprite*>(spr)->AutoUpdate(nullptr);
+				dirty = std::const_pointer_cast<s2::Sprite>(spr)->AutoUpdate(nullptr);
 				++i;
 				++node_ptr;
 			}
 		} 
 		else 
 		{
-			const s2::Actor* actor = static_cast<const s2::Actor*>(node_ptr->m_data);
+			s2::ActorConstPtr actor(static_cast<const s2::Actor*>(node_ptr->m_data));
 			if ((!force && !actor->GetSpr()->IsInheritUpdate()) ||
 				!actor->IsVisible()) {
 				i += node_ptr->m_count;
 				node_ptr += node_ptr->m_count;
 			} else {
-				dirty = const_cast<s2::Sprite*>(actor->GetSpr())->AutoUpdate(actor);
+				dirty = std::const_pointer_cast<s2::Sprite>(actor->GetSpr())->AutoUpdate(actor);
 				++i;
 				++node_ptr;
 			}
@@ -119,13 +129,12 @@ void FTList::DrawForward(int pos, const s2::RenderParams& rp)
 	int prev_layer = start_layer - 1;
 	for (int i = 0, n = node_ptr->m_count; i < n; )
 	{
-		const s2::Sprite* spr = nullptr;
-		const s2::Actor* actor = nullptr;
-
+		s2::SprConstPtr spr = nullptr;
+		s2::ActorConstPtr actor = nullptr;
 		if (node_ptr->IsDataSpr()) {
-			spr = static_cast<const s2::Sprite*>(node_ptr->m_data);
+			spr = s2::SprConstPtr(static_cast<const s2::Sprite*>(node_ptr->m_data));
 		} else {
-			actor = static_cast<const s2::Actor*>(node_ptr->m_data);
+			actor = s2::ActorConstPtr(static_cast<const s2::Actor*>(node_ptr->m_data));
 			spr = actor->GetSpr();
 		}
 
@@ -217,13 +226,13 @@ void FTList::DrawDeferred(int pos, const s2::RenderParams& rp,
 			continue;
 		}
 
-		const s2::Sprite* spr = nullptr;
-		const s2::Actor* actor = nullptr; 
+		s2::SprConstPtr spr = nullptr;
+		s2::ActorConstPtr actor = nullptr;
 
 		if (node_ptr->IsDataSpr()) {
-			spr = static_cast<const s2::Sprite*>(node_ptr->m_data);
+			spr = s2::SprConstPtr(static_cast<const s2::Sprite*>(node_ptr->m_data));
 		} else {
-			actor = static_cast<const s2::Actor*>(node_ptr->m_data);
+			actor = s2::ActorConstPtr(static_cast<const s2::Actor*>(node_ptr->m_data));
 			spr = actor->GetSpr();
 		}
 
@@ -337,7 +346,7 @@ void FTList::SetFrame(int pos, bool force, int frame,
 
 		if (node_ptr->IsDataSpr())
 		{
-			const s2::Sprite* spr = static_cast<const s2::Sprite*>(node_ptr->m_data);
+			s2::SprConstPtr spr(static_cast<const s2::Sprite*>(node_ptr->m_data));
 			if ((!force && !spr->IsInheritUpdate()) ||
 				!spr->IsVisible() ||
 				spr->GetSymbol()->Type() != s2::SYM_ANIMATION) 
@@ -347,16 +356,17 @@ void FTList::SetFrame(int pos, bool force, int frame,
 			} 
 			else 
 			{
-				const s2::AnimSprite* anim_spr = VI_DOWNCASTING<const s2::AnimSprite*>(spr);
 				params.SetActor(nullptr);
-				dirty = const_cast<s2::AnimSprite*>(anim_spr)->SetFrame(params, frame);
+				auto anim_spr = std::const_pointer_cast<s2::AnimSprite>(
+					S2_VI_PTR_DOWN_CAST<const s2::AnimSprite>(spr));
+				dirty = anim_spr->SetFrame(params, frame);
 				++i;
 				++node_ptr;
 			}
 		}
 		else
 		{
-			const s2::Actor* actor = static_cast<const s2::Actor*>(node_ptr->m_data);
+			s2::ActorConstPtr actor(static_cast<const s2::Actor*>(node_ptr->m_data));
 			if ((!force && !actor->GetSpr()->IsInheritUpdate()) ||
 				!actor->IsVisible() ||
 				actor->GetSpr()->GetSymbol()->Type() != s2::SYM_ANIMATION) 
@@ -366,9 +376,10 @@ void FTList::SetFrame(int pos, bool force, int frame,
 			} 
 			else 
 			{
-				const s2::AnimSprite* anim_spr = VI_DOWNCASTING<const s2::AnimSprite*>(actor->GetSpr());
-				params.SetActor(actor);
-				dirty = const_cast<s2::AnimSprite*>(anim_spr)->SetFrame(params, frame);
+				params.SetActor(std::const_pointer_cast<s2::Actor>(actor));
+				auto anim_spr = std::const_pointer_cast<s2::AnimSprite>(
+					S2_VI_PTR_DOWN_CAST<const s2::AnimSprite>(actor->GetSpr()));
+				dirty = anim_spr->SetFrame(params, frame);
 				++i;
 				++node_ptr;
 			}
@@ -391,27 +402,40 @@ const FTNode* FTList::GetNode(int pos) const
 
 void FTList::Build(const std::shared_ptr<cooking::DisplayList>& dlist)
 {
+	auto root = m_root.lock();
+	if (!root) {
+		return;
+	}
+
 	int count = 0;
 	{
 		s2::SprVisitorParams params;
-		params.actor = m_root;
+		params.actor = root;
 
 		CountNodesVisitor visitor;
-		m_root->GetSpr()->Traverse(visitor, params);
+		root->GetSpr()->Traverse(visitor, params);
 
 		count = visitor.GetCount();
 	}
 
 	if (!m_nodes || m_nodes_cap != count) {
+
+		if (!m_nodes) {
+			++TOT_COUNT;
+		}
+		++TOT_ALLOC;
+		TOT_MEM += (count - m_nodes_cap) * sizeof(FTNode);
+//		printf("+++ alloc, mem %d, count %d, alloc% d, free %d, sz %d\n", TOT_MEM, TOT_COUNT, TOT_ALLOC, TOT_FREE, (count - m_nodes_cap) * sizeof(FTNode));
+
 		m_nodes = (FTNode*)realloc(m_nodes, sizeof(FTNode) * count);
 	}
 	m_nodes_cap = count;
 	m_nodes_sz = 0;
 	
 	s2::SprVisitorParams params;
-	params.actor = m_root;
+	params.actor = root;
 	BuildListVisitor visitor(shared_from_this(), dlist);
-	m_root->GetSpr()->Traverse(visitor, params);
+	root->GetSpr()->Traverse(visitor, params);
 
 	InitNeedUpdateFlag();
 
@@ -435,9 +459,10 @@ void FTList::InitNeedUpdateFlag()
 		assert(node_ptr->m_data);
 		bool update_dirty = false;
 		if (node_ptr->IsDataSpr()) {
-			update_dirty = static_cast<const s2::Sprite*>(node_ptr->m_data)->NeedAutoUpdate(nullptr);
+			s2::SprConstPtr spr(static_cast<const s2::Sprite*>(node_ptr->m_data));
+			update_dirty = spr->NeedAutoUpdate(nullptr);
 		} else {
-			const s2::Actor* actor = static_cast<const s2::Actor*>(node_ptr->m_data);
+			s2::ActorConstPtr actor(static_cast<const s2::Actor*>(node_ptr->m_data));
 			update_dirty = actor->GetSpr()->NeedAutoUpdate(actor);
 		}
 		if (update_dirty) 

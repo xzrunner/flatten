@@ -11,7 +11,7 @@ class CountNodesVisitor : public s2::SpriteVisitor
 public:
 	CountNodesVisitor() : m_count(0) {}
 
-	virtual s2::VisitResult Visit(const s2::Sprite* spr, const s2::SprVisitorParams& params) {
+	virtual s2::VisitResult Visit(const s2::SprConstPtr& spr, const s2::SprVisitorParams& params) {
 		++m_count;
 		return s2::VISIT_INTO;
 	}

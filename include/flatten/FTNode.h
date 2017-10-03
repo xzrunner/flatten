@@ -1,11 +1,10 @@
 #ifndef _FLATTEN_NODE_H_
 #define _FLATTEN_NODE_H_
 
-#include <sprite2/s2_macro.h>
+#include <cu/cu_macro.h>
+#include <sprite2/s2_typedef.h>
 
 #include <cstdint>
-
-namespace s2 { class Sprite; class Actor; }
 
 namespace ft
 {
@@ -17,19 +16,19 @@ public:
 	FTNode(const FTNode&) = delete;
 	void operator=(const FTNode&) = delete;
 
-	void Init(const s2::Sprite* spr) 
+	void Init(const s2::SprConstPtr& spr) 
 	{
 		Init();
 
-		m_data = spr;
+		m_data = spr.get();
 		SetDataSpr(true);
 	}
 
-	void Init(const s2::Actor* actor)
+	void Init(const s2::ActorConstPtr& actor)
 	{
 		Init();
 
-		m_data = actor;
+		m_data = actor.get();
 		SetDataSpr(false);
 	}
 
@@ -57,9 +56,9 @@ private:
 	static const uint16_t FLAG_DRAWLIST_DIRTY = 0x0004;
 
 public:
-	S2_FLAG_METHOD(DataSpr, FLAG_DATA_SPR)
-	S2_FLAG_METHOD(UpdateDirty, FLAG_UPDATE_DIRTY)
-	S2_FLAG_METHOD(DrawlistDirty, FLAG_DRAWLIST_DIRTY)
+	CU_FLAG_METHOD(DataSpr, FLAG_DATA_SPR)
+	CU_FLAG_METHOD(UpdateDirty, FLAG_UPDATE_DIRTY)
+	CU_FLAG_METHOD(DrawlistDirty, FLAG_DRAWLIST_DIRTY)
 
 private:
 	static const uint16_t INVALID_ID = 0xffff;

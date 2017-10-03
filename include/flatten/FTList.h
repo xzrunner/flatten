@@ -2,13 +2,14 @@
 #define _FLATTEN_LIST_H_
 
 #include <cooking/DisplayList.h>
+#include <sprite2/s2_typedef.h>
 
 #include <vector>
 #include <memory>
 
 #include <stdint.h>
 
-namespace s2 { class Sprite; class Actor; class RenderParams; }
+namespace s2 { class RenderParams; }
 
 namespace ft
 {
@@ -18,7 +19,7 @@ class FTNode;
 class FTList : public std::enable_shared_from_this<FTList>
 {
 public:
-	FTList(s2::Actor* root);
+	FTList(const s2::ActorPtr& root);
 	FTList(const FTList&) = delete;
 	FTList(FTList&&) = delete;
 	~FTList();
@@ -51,7 +52,7 @@ private:
 	static const int MAX_LAYER = 16;
 
 private:
-	s2::Actor* m_root;
+	std::weak_ptr<s2::Actor> m_root;
 
 	FTNode* m_nodes;
 	int m_nodes_sz, m_nodes_cap;

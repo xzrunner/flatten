@@ -17,12 +17,12 @@ BuildListVisitor::BuildListVisitor(const std::shared_ptr<FTList>& flatten,
 {
 }
 
-s2::VisitResult BuildListVisitor::Visit(const s2::Sprite* spr, const s2::SprVisitorParams& params)
+s2::VisitResult BuildListVisitor::Visit(const s2::SprConstPtr& spr, const s2::SprVisitorParams& params)
 {
 	assert(m_flatten->m_nodes_cap > 0 && m_flatten->m_nodes_sz < m_flatten->m_nodes_cap);
 	if (params.actor) 
 	{
-		s2::Actor* actor = const_cast<s2::Actor*>(params.actor);
+		auto& actor = std::const_pointer_cast<s2::Actor>(params.actor);
 
 		int pos = m_flatten->m_nodes_sz;
 		m_flatten->m_nodes[m_flatten->m_nodes_sz++].Init(params.actor);
@@ -47,13 +47,13 @@ s2::VisitResult BuildListVisitor::Visit(const s2::Sprite* spr, const s2::SprVisi
 	return s2::VISIT_INTO;
 }
 
-s2::VisitResult BuildListVisitor::VisitChildrenBegin(const s2::Sprite* spr, const s2::SprVisitorParams& params)
+s2::VisitResult BuildListVisitor::VisitChildrenBegin(const s2::SprConstPtr& spr, const s2::SprVisitorParams& params)
 {
 	m_curr_path.push_back(m_flatten->m_nodes_sz - 1);
 	return s2::VISIT_OVER;
 }
 
-s2::VisitResult BuildListVisitor::VisitChildrenEnd(const s2::Sprite* spr, const s2::SprVisitorParams& params)
+s2::VisitResult BuildListVisitor::VisitChildrenEnd(const s2::SprConstPtr& spr, const s2::SprVisitorParams& params)
 {
 	int curr = m_curr_path.back();
 	m_curr_path.pop_back();
