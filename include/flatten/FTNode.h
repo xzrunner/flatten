@@ -5,6 +5,7 @@
 #include <sprite2/s2_typedef.h>
 
 #include <cstdint>
+#include <variant>
 
 namespace ft
 {
@@ -20,7 +21,7 @@ public:
 	{
 		Init();
 
-		m_data = spr.get();
+		m_data = spr;
 		SetDataSpr(true);
 	}
 
@@ -28,18 +29,22 @@ public:
 	{
 		Init();
 
-		m_data = actor.get();
+		m_data = actor;
 		SetDataSpr(false);
 	}
 
-	const void* GetData() const { return m_data; }
+	s2::SprConstPtr GetSpr() const {
+		return IsDataSpr() ? std::get<0>(m_data).lock() : nullptr;
+	}
+	s2::ActorConstPtr GetActor() const {
+		return IsDataSpr() ? nullptr : std::get<1>(m_data).lock();
+	}
 
 	int GetCount() const { return m_count; }
 
 private:
 	void Init()
 	{
-		m_data = nullptr;
 		m_parent = INVALID_ID;
 		m_count = 0;
 		m_layer = 0;
@@ -64,7 +69,10 @@ private:
 	static const uint16_t INVALID_ID = 0xffff;
 
 private:
-	const void* m_data;
+	std::variant<
+		std::weak_ptr<const s2::Sprite>, 
+		std::weak_ptr<const s2::Actor>
+	> m_data;
 
 	uint16_t m_parent;
 
