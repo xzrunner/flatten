@@ -74,26 +74,26 @@ bool FTList::Update(int pos, bool force, const std::shared_ptr<cooking::DisplayL
 
 		if (node_ptr->IsDataSpr()) 
 		{
-			auto spr(node_ptr->GetSpr());
+			auto spr(static_cast<const s2::Sprite*>(node_ptr->m_data));
 			if ((!force && !spr->IsInheritUpdate()) ||
 				!spr->IsVisible()) {
 				i += node_ptr->m_count;
 				node_ptr += node_ptr->m_count;
 			} else {
-				dirty = std::const_pointer_cast<s2::Sprite>(spr)->AutoUpdate(nullptr);
+				dirty = const_cast<s2::Sprite*>(spr)->AutoUpdate(nullptr);
 				++i;
 				++node_ptr;
 			}
 		} 
 		else 
 		{
-			auto actor(node_ptr->GetActor());
+			auto actor(static_cast<const s2::Actor*>(node_ptr->m_data));
 			if ((!force && !actor->GetSpr()->IsInheritUpdate()) ||
 				!actor->IsVisible()) {
 				i += node_ptr->m_count;
 				node_ptr += node_ptr->m_count;
 			} else {
-				dirty = actor->GetSpr()->AutoUpdate(actor.get());
+				dirty = const_cast<s2::Sprite*>(actor->GetSpr())->AutoUpdate(actor);
 				++i;
 				++node_ptr;
 			}
@@ -129,12 +129,12 @@ void FTList::DrawForward(int pos, const s2::RenderParams& rp)
 	int prev_layer = start_layer - 1;
 	for (int i = 0, n = node_ptr->m_count; i < n; )
 	{
-		s2::SprConstPtr spr = nullptr;
-		s2::ActorConstPtr actor = nullptr;
+		const s2::Sprite* spr = nullptr;
+		const s2::Actor* actor = nullptr;
 		if (node_ptr->IsDataSpr()) {
-			spr = node_ptr->GetSpr();
+			spr = static_cast<const s2::Sprite*>(node_ptr->m_data);
 		} else {
-			actor = node_ptr->GetActor();
+			actor = static_cast<const s2::Actor*>(node_ptr->m_data);
 			spr = actor->GetSpr();
 		}
 
@@ -159,14 +159,14 @@ void FTList::DrawForward(int pos, const s2::RenderParams& rp)
 		}
 		assert(node_ptr->m_layer + 1 - start_layer == stk_sz);
 
-		s2::Utility::PrepareMat(stk_mat[stk_sz - 1], spr.get(), actor.get(), prev_mt);
-		s2::Utility::PrepareColor(stk_col[stk_sz - 1], spr.get(), actor.get(), prev_col);
+		s2::Utility::PrepareMat(stk_mat[stk_sz - 1], spr, actor, prev_mt);
+		s2::Utility::PrepareColor(stk_col[stk_sz - 1], spr, actor, prev_col);
 		prev_layer = node_ptr->m_layer;
 
 		rp_child->mt = prev_mt;
 		rp_child->color = prev_col;
 		rp_child->actor = actor;
-		if (spr->GetSymbol()->DrawNode(nullptr, *rp_child, spr.get(), *this, i) == s2::RENDER_SKIP) {
+		if (spr->GetSymbol()->DrawNode(nullptr, *rp_child, spr, *this, i) == s2::RENDER_SKIP) {
 			i++;
 			node_ptr++;
 		} else {
@@ -226,13 +226,13 @@ void FTList::DrawDeferred(int pos, const s2::RenderParams& rp,
 			continue;
 		}
 
-		s2::SprConstPtr spr = nullptr;
-		s2::ActorConstPtr actor = nullptr;
+		const s2::Sprite* spr = nullptr;
+		const s2::Actor* actor = nullptr;
 
 		if (node_ptr->IsDataSpr()) {
-			spr = node_ptr->GetSpr();
+			spr = static_cast<const s2::Sprite*>(node_ptr->m_data);
 		} else {
-			actor = node_ptr->GetActor();
+			actor = static_cast<const s2::Actor*>(node_ptr->m_data);
 			spr = actor->GetSpr();
 		}
 
@@ -259,17 +259,17 @@ void FTList::DrawDeferred(int pos, const s2::RenderParams& rp,
 		}
 		assert(node_ptr->m_layer + 1 - start_layer == stk_sz);
 
-		s2::Utility::PrepareMat(stk_mat[stk_sz - 1], spr.get(), actor.get(), prev_mt);
-		s2::Utility::PrepareColor(stk_col[stk_sz - 1], spr.get(), actor.get(), prev_col);
+		s2::Utility::PrepareMat(stk_mat[stk_sz - 1], spr, actor, prev_mt);
+		s2::Utility::PrepareColor(stk_col[stk_sz - 1], spr, actor, prev_col);
 		prev_layer = node_ptr->m_layer;
 
 		rp_child->mt = prev_mt;
 		rp_child->color = prev_col;
-		rp_child->actor = actor;
+		rp_child->actor = static_cast<const s2::Actor*>(node_ptr->m_data);
 
 		int start = pos_off + static_cast<uint16_t>(dlist_tmp.Size());
 		int old_count = node_ptr->m_dlist_count;
-		s2::RenderReturn ret = spr->GetSymbol()->DrawNode(&dlist_tmp, *rp_child, spr.get(), *this, i);
+		s2::RenderReturn ret = spr->GetSymbol()->DrawNode(&dlist_tmp, *rp_child, spr, *this, i);
 		node_ptr->m_dlist_count = pos_off + static_cast<uint16_t>(dlist_tmp.Size()) - start;
 
 		node_ptr->SetDrawlistDirty(false);
@@ -346,7 +346,7 @@ void FTList::SetFrame(int pos, bool force, int frame,
 
 		if (node_ptr->IsDataSpr())
 		{
-			auto spr(node_ptr->GetSpr());
+			auto spr(static_cast<const s2::Sprite*>(node_ptr->m_data));
 			if ((!force && !spr->IsInheritUpdate()) ||
 				!spr->IsVisible() ||
 				spr->GetSymbol()->Type() != s2::SYM_ANIMATION) 
@@ -357,15 +357,15 @@ void FTList::SetFrame(int pos, bool force, int frame,
 			else 
 			{
 				params.SetActor(nullptr);
-				auto anim_spr = S2_VI_PTR_DOWN_CAST<const s2::AnimSprite>(spr);
-				dirty = std::const_pointer_cast<s2::AnimSprite>(anim_spr)->SetFrame(params, frame);
+				auto anim_spr = S2_VI_DOWN_CAST<const s2::AnimSprite*>(spr);
+				dirty = const_cast<s2::AnimSprite*>(anim_spr)->SetFrame(params, frame);
 				++i;
 				++node_ptr;
 			}
 		}
 		else
 		{
-			auto actor(node_ptr->GetActor());
+			auto actor(static_cast<const s2::Actor*>(node_ptr->m_data));
 			if ((!force && !actor->GetSpr()->IsInheritUpdate()) ||
 				!actor->IsVisible() ||
 				actor->GetSpr()->GetSymbol()->Type() != s2::SYM_ANIMATION) 
@@ -375,9 +375,9 @@ void FTList::SetFrame(int pos, bool force, int frame,
 			} 
 			else 
 			{
-				params.SetActor(std::const_pointer_cast<s2::Actor>(actor));
-				auto anim_spr = S2_VI_PTR_DOWN_CAST<s2::AnimSprite>(actor->GetSpr());
-				dirty = anim_spr->SetFrame(params, frame);
+				params.SetActor(const_cast<s2::Actor*>(actor));
+				auto anim_spr = S2_VI_DOWN_CAST<const s2::AnimSprite*>(actor->GetSpr());
+				dirty = const_cast<s2::AnimSprite*>(anim_spr)->SetFrame(params, frame);
 				++i;
 				++node_ptr;
 			}
@@ -456,10 +456,10 @@ void FTList::InitNeedUpdateFlag()
 		}
 		bool update_dirty = false;
 		if (node_ptr->IsDataSpr()) {
-			auto spr(node_ptr->GetSpr());
+			auto spr = static_cast<const s2::Sprite*>(node_ptr->m_data);
 			update_dirty = spr->NeedAutoUpdate(nullptr);
 		} else {
-			auto actor(node_ptr->GetActor());
+			auto actor = static_cast<const s2::Actor*>(node_ptr->m_data);
 			update_dirty = actor->GetSpr()->NeedAutoUpdate(actor);
 		}
 		if (update_dirty) 

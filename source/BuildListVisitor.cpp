@@ -25,7 +25,7 @@ s2::VisitResult BuildListVisitor::Visit(const s2::SprConstPtr& spr, const s2::Sp
 		auto& actor = std::const_pointer_cast<s2::Actor>(params.actor);
 
 		int pos = m_flatten->m_nodes_sz;
-		m_flatten->m_nodes[m_flatten->m_nodes_sz++].Init(params.actor);
+		m_flatten->m_nodes[m_flatten->m_nodes_sz++].Init(params.actor.get());
 #ifndef S2_DISABLE_FLATTEN
 		actor->SetFlatten(m_flatten, pos);
 #endif // S2_DISABLE_FLATTEN
@@ -36,7 +36,7 @@ s2::VisitResult BuildListVisitor::Visit(const s2::SprConstPtr& spr, const s2::Sp
 	} 
 	else 
 	{
-		m_flatten->m_nodes[m_flatten->m_nodes_sz++].Init(spr);
+		m_flatten->m_nodes[m_flatten->m_nodes_sz++].Init(spr.get());
 	}
 	FTNode& node = m_flatten->m_nodes[m_flatten->m_nodes_sz - 1];
 	if (m_curr_path.empty()) {
