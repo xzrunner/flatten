@@ -16,6 +16,7 @@
 #include <sprite2/UpdateParams.h>
 
 #include <cooking/DisplayList.h>
+#include <memmgr/BlockAllocatorPool.h>
 
 #include <assert.h>
 
@@ -119,8 +120,8 @@ void FTList::DrawForward(int pos, const s2::RenderParams& rp)
 	sm::Matrix2D prev_mt = rp.mt;
 	s2::RenderColor prev_col = rp.color;
 
-	s2::RenderParams* rp_child = s2::RenderParamsPool::Instance()->Pop();
-	*rp_child = rp;
+	s2::RenderParams* rp_child = static_cast<s2::RenderParams*>(mm::AllocHelper::Allocate(sizeof(s2::RenderParams)));
+	memcpy(rp_child, &rp, sizeof(rp));
 
 	assert(m_nodes[0].m_count == m_nodes_sz);
 
@@ -175,7 +176,7 @@ void FTList::DrawForward(int pos, const s2::RenderParams& rp)
 		}
 	}
 
-	s2::RenderParamsPool::Instance()->Push(rp_child);
+	mm::AllocHelper::Free(rp_child, sizeof(s2::RenderParams));
 }
 
 void FTList::DrawDeferred(int pos, const s2::RenderParams& rp,
@@ -192,8 +193,8 @@ void FTList::DrawDeferred(int pos, const s2::RenderParams& rp,
 	sm::Matrix2D prev_mt = rp.mt;
 	s2::RenderColor prev_col = rp.color;
 
-	s2::RenderParams* rp_child = s2::RenderParamsPool::Instance()->Pop();
-	*rp_child = rp;
+	s2::RenderParams* rp_child = static_cast<s2::RenderParams*>(mm::AllocHelper::Allocate(sizeof(s2::RenderParams)));
+	memcpy(rp_child, &rp, sizeof(rp));
 
 	assert(m_nodes[0].m_count == m_nodes_sz);
 
@@ -283,7 +284,7 @@ void FTList::DrawDeferred(int pos, const s2::RenderParams& rp,
 		}
 	}
 
-	s2::RenderParamsPool::Instance()->Push(rp_child);
+	mm::AllocHelper::Free(rp_child, sizeof(s2::RenderParams));
 
 	if (dlist) 
 	{
