@@ -22,10 +22,10 @@ s2::VisitResult BuildListVisitor::Visit(const s2::SprConstPtr& spr, const s2::Sp
 	assert(m_flatten->m_nodes_cap > 0 && m_flatten->m_nodes_sz < m_flatten->m_nodes_cap);
 	if (params.actor) 
 	{
-		auto& actor = std::const_pointer_cast<s2::Actor>(params.actor);
+		auto& actor = params.actor;
 
 		int pos = m_flatten->m_nodes_sz;
-		m_flatten->m_nodes[m_flatten->m_nodes_sz++].Init(params.actor.get());
+		m_flatten->m_nodes[m_flatten->m_nodes_sz++].Init(params.actor);
 #ifndef S2_DISABLE_FLATTEN
 		actor->SetFlatten(m_flatten, pos);
 #endif // S2_DISABLE_FLATTEN

@@ -89,12 +89,12 @@ bool FTList::Update(int pos, bool force, const std::shared_ptr<cooking::DisplayL
 		else 
 		{
 			auto actor(static_cast<const s2::Actor*>(node_ptr->m_data));
-			if ((!force && !actor->GetSpr()->IsInheritUpdate()) ||
+			if ((!force && !actor->GetSprRaw()->IsInheritUpdate()) ||
 				!actor->IsVisible()) {
 				i += node_ptr->m_count;
 				node_ptr += node_ptr->m_count;
 			} else {
-				dirty = const_cast<s2::Sprite*>(actor->GetSpr())->AutoUpdate(actor);
+				dirty = const_cast<s2::Sprite*>(actor->GetSprRaw())->AutoUpdate(actor);
 				++i;
 				++node_ptr;
 			}
@@ -136,7 +136,7 @@ void FTList::DrawForward(int pos, const s2::RenderParams& rp)
 			spr = static_cast<const s2::Sprite*>(node_ptr->m_data);
 		} else {
 			actor = static_cast<const s2::Actor*>(node_ptr->m_data);
-			spr = actor->GetSpr();
+			spr = actor->GetSprRaw();
 		}
 
 		bool visible = actor ? actor->IsVisible() : spr->IsVisible();
@@ -234,7 +234,7 @@ void FTList::DrawDeferred(int pos, const s2::RenderParams& rp,
 			spr = static_cast<const s2::Sprite*>(node_ptr->m_data);
 		} else {
 			actor = static_cast<const s2::Actor*>(node_ptr->m_data);
-			spr = actor->GetSpr();
+			spr = actor->GetSprRaw();
 		}
 
 		bool visible = actor ? actor->IsVisible() : spr->IsVisible();
@@ -367,9 +367,9 @@ void FTList::SetFrame(int pos, bool force, int frame,
 		else
 		{
 			auto actor(static_cast<const s2::Actor*>(node_ptr->m_data));
-			if ((!force && !actor->GetSpr()->IsInheritUpdate()) ||
+			if ((!force && !actor->GetSprRaw()->IsInheritUpdate()) ||
 				!actor->IsVisible() ||
-				actor->GetSpr()->GetSymbol()->Type() != s2::SYM_ANIMATION) 
+				actor->GetSprRaw()->GetSymbol()->Type() != s2::SYM_ANIMATION)
 			{
 				i += node_ptr->m_count;
 				node_ptr += node_ptr->m_count;
@@ -377,7 +377,7 @@ void FTList::SetFrame(int pos, bool force, int frame,
 			else 
 			{
 				params.SetActor(const_cast<s2::Actor*>(actor));
-				auto anim_spr = S2_VI_DOWN_CAST<const s2::AnimSprite*>(actor->GetSpr());
+				auto anim_spr = S2_VI_DOWN_CAST<const s2::AnimSprite*>(actor->GetSprRaw());
 				dirty = const_cast<s2::AnimSprite*>(anim_spr)->SetFrame(params, frame);
 				++i;
 				++node_ptr;
@@ -409,10 +409,10 @@ void FTList::Build(const std::shared_ptr<cooking::DisplayList>& dlist)
 	int count = 0;
 	{
 		s2::SprVisitorParams params;
-		params.actor = root;
+		params.actor = root.get();
 
 		CountNodesVisitor visitor;
-		root->GetSpr()->Traverse(visitor, params);
+		root->GetSprRaw()->Traverse(visitor, params);
 
 		count = visitor.GetCount();
 	}
@@ -432,9 +432,9 @@ void FTList::Build(const std::shared_ptr<cooking::DisplayList>& dlist)
 	m_nodes_sz = 0;
 	
 	s2::SprVisitorParams params;
-	params.actor = root;
+	params.actor = root.get();
 	BuildListVisitor visitor(shared_from_this(), dlist);
-	root->GetSpr()->Traverse(visitor, params);
+	root->GetSprRaw()->Traverse(visitor, params);
 
 	InitNeedUpdateFlag();
 
@@ -461,7 +461,7 @@ void FTList::InitNeedUpdateFlag()
 			update_dirty = spr->NeedAutoUpdate(nullptr);
 		} else {
 			auto actor = static_cast<const s2::Actor*>(node_ptr->m_data);
-			update_dirty = actor->GetSpr()->NeedAutoUpdate(actor);
+			update_dirty = actor->GetSprRaw()->NeedAutoUpdate(actor);
 		}
 		if (update_dirty) 
 		{
