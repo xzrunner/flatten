@@ -43,10 +43,11 @@ FTList::~FTList()
 	if (m_nodes) {
 		--TOT_COUNT;
 		++TOT_FREE;
-		TOT_MEM -= sizeof(FTNode) * m_nodes_cap;
+		size_t sz = sizeof(FTNode) * m_nodes_cap;
+		TOT_MEM -= sz;
 //		printf("+++ free, mem %d, count %d, alloc% d, free %d\n", TOT_MEM, TOT_COUNT, TOT_ALLOC, TOT_FREE);
 
-		free(m_nodes);
+		mm::AllocHelper::Free(m_nodes, sz);
 	}
 }
 
@@ -426,7 +427,10 @@ void FTList::Build(const std::shared_ptr<cooking::DisplayList>& dlist)
 		TOT_MEM += (count - m_nodes_cap) * sizeof(FTNode);
 //		printf("+++ alloc, mem %d, count %d, alloc% d, free %d, sz %d\n", TOT_MEM, TOT_COUNT, TOT_ALLOC, TOT_FREE, (count - m_nodes_cap) * sizeof(FTNode));
 
-		m_nodes = (FTNode*)realloc(m_nodes, sizeof(FTNode) * count);
+		if (m_nodes) {
+			mm::AllocHelper::Free(m_nodes, sizeof(FTNode) * m_nodes_cap);
+		}
+		m_nodes = static_cast<FTNode*>(mm::AllocHelper::Allocate(sizeof(FTNode) * count));
 	}
 	m_nodes_cap = count;
 	m_nodes_sz = 0;
