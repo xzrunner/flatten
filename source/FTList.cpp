@@ -14,9 +14,11 @@
 #include <sprite2/AnimSprite.h>
 #include <sprite2/UpdateParams.h>
 
+#include <unirender/UR_RenderContext.h>
 #include <cooking/DisplayList.h>
 #include <memmgr/BlockAllocatorPool.h>
 #include <shaderlab/ShaderMgr.h>
+#include <shaderlab/FilterShader.h>
 
 #include <assert.h>
 
@@ -114,12 +116,14 @@ void FTList::DrawForward(int pos, const s2::RenderParams& rp)
 		return;
 	}
 
-	sm::Matrix2D stk_mat[MAX_LAYER];
+	sm::Matrix2D    stk_mat[MAX_LAYER];
 	s2::RenderColor stk_col[MAX_LAYER];
+	s2::FilterMode  stk_filter[MAX_LAYER];
 	int stk_sz = 0;
 
-	sm::Matrix2D prev_mt = rp.mt;
+	sm::Matrix2D    prev_mt = rp.mt;
 	s2::RenderColor prev_col = rp.color;
+	s2::FilterMode  prev_filter = rp.render_filter;
 
 	s2::RenderParams* rp_child = static_cast<s2::RenderParams*>(mm::AllocHelper::Allocate(sizeof(s2::RenderParams)));
 	memcpy(rp_child, &rp, sizeof(rp));
@@ -152,8 +156,9 @@ void FTList::DrawForward(int pos, const s2::RenderParams& rp)
 		if (node_ptr->m_layer == prev_layer) {
 			;
 		} else if (node_ptr->m_layer == prev_layer + 1) {
-			stk_mat[stk_sz] = prev_mt;
-			stk_col[stk_sz] = prev_col;
+			stk_mat[stk_sz]    = prev_mt;
+			stk_col[stk_sz]    = prev_col;
+			stk_filter[stk_sz] = prev_filter;
 			++stk_sz;
 		} else {
 			assert(node_ptr->m_layer < prev_layer);
@@ -162,18 +167,19 @@ void FTList::DrawForward(int pos, const s2::RenderParams& rp)
 			}
 		}
 		assert(node_ptr->m_layer + 1 - start_layer == stk_sz);
-
-		if (rp.IsChangeShader()) {
-			shader_mgr->SetShader(sl::SPRITE2);
-		}
-
+		
 		s2::Utility::PrepareMat(stk_mat[stk_sz - 1], spr, actor, prev_mt);
 		s2::Utility::PrepareColor(stk_col[stk_sz - 1], spr, actor, prev_col);
+		prev_filter = stk_filter[stk_sz - 1];
 		prev_layer = node_ptr->m_layer;
 
 		rp_child->mt = prev_mt;
 		rp_child->color = prev_col;
 		rp_child->actor = actor;
+
+		PrepareDraw(shader_mgr, *rp_child, spr, prev_filter);
+		rp_child->render_filter = prev_filter;
+
 		if (spr->GetSymbol()->DrawNode(nullptr, *rp_child, spr, *this, i) == s2::RENDER_SKIP) {
 			i++;
 			node_ptr++;
@@ -193,12 +199,15 @@ void FTList::DrawDeferred(int pos, const s2::RenderParams& rp,
 		return;
 	}
 
-	sm::Matrix2D stk_mat[MAX_LAYER];
+	sm::Matrix2D    stk_mat[MAX_LAYER];
 	s2::RenderColor stk_col[MAX_LAYER];
+	s2::FilterMode  stk_filter[MAX_LAYER];
+
 	int stk_sz = 0;
 
-	sm::Matrix2D prev_mt = rp.mt;
+	sm::Matrix2D    prev_mt = rp.mt;
 	s2::RenderColor prev_col = rp.color;
+	s2::FilterMode  prev_filter = rp.render_filter;
 
 	s2::RenderParams* rp_child = static_cast<s2::RenderParams*>(mm::AllocHelper::Allocate(sizeof(s2::RenderParams)));
 	memcpy(rp_child, &rp, sizeof(rp));
@@ -258,8 +267,9 @@ void FTList::DrawDeferred(int pos, const s2::RenderParams& rp,
 		if (node_ptr->m_layer == prev_layer) {
 			;
 		} else if (node_ptr->m_layer == prev_layer + 1) {
-			stk_mat[stk_sz] = prev_mt;
-			stk_col[stk_sz] = prev_col;
+			stk_mat[stk_sz]    = prev_mt;
+			stk_col[stk_sz]    = prev_col;
+			stk_filter[stk_sz] = prev_filter;
 			++stk_sz;
 		} else {
 			assert(node_ptr->m_layer < prev_layer);
@@ -269,17 +279,17 @@ void FTList::DrawDeferred(int pos, const s2::RenderParams& rp,
 		}
 		assert(node_ptr->m_layer + 1 - start_layer == stk_sz);
 
-		if (rp.IsChangeShader()) {
-			shader_mgr->SetShader(sl::SPRITE2);
-		}
-
 		s2::Utility::PrepareMat(stk_mat[stk_sz - 1], spr, actor, prev_mt);
 		s2::Utility::PrepareColor(stk_col[stk_sz - 1], spr, actor, prev_col);
+		prev_filter = stk_filter[stk_sz - 1];
 		prev_layer = node_ptr->m_layer;
 
 		rp_child->mt = prev_mt;
 		rp_child->color = prev_col;
 		rp_child->actor = static_cast<const s2::Actor*>(node_ptr->m_data);
+
+		PrepareDraw(shader_mgr, *rp_child, spr, prev_filter);
+		rp_child->render_filter = prev_filter;
 
 		int start = pos_off + static_cast<uint16_t>(dlist_tmp.Size());
 		int old_count = node_ptr->m_dlist_count;
@@ -548,6 +558,77 @@ void FTList::SetDrawlistDirty(const FTNode* node)
 		const FTNode* ptr_parent = &m_nodes[parent];
 		ptr_parent->SetDrawlistDirty(true);
 		parent = ptr_parent->m_parent;
+	}
+}
+
+void FTList::PrepareDraw(sl::ShaderMgr* shader_mgr, const s2::RenderParams& rp, 
+	                     const s2::Sprite* spr, s2::FilterMode& filter)
+{
+	s2::RenderShader rs;
+//	s2::RenderCamera rc;
+	if (rp.IsDisableRenderDraw()) {
+		rs = *s2::SprDefault::Instance()->Shader();
+//		rc = *s2::SprDefault::Instance()->Camera();
+	} else if (spr->HaveActor()) {
+		rs = spr->GetShader().Multiply(filter, rp.render_blend, rp.render_fast_blend, rp.render_downsample);
+//		rc = spr->GetCamera() * rp.camera;
+		if (rp.actor) {
+			rs = rp.actor->GetShader() * rs;
+//			rc = rp.actor->GetCamera() * rc;
+		}
+	} else {
+		rs = spr->GetShader().Multiply(filter, rp.render_blend, rp.render_fast_blend, rp.render_downsample);
+//		rc = spr->GetCamera() * rp.camera;
+	}
+
+	ur::RenderContext* rctx = shader_mgr->GetContext();
+	switch (rs.GetFastBlend())
+	{
+	case s2::FBM_NULL:
+		rctx->SetBlend(2, 6);		// BLEND_GL_ONE, BLEND_GL_ONE_MINUS_SRC_ALPHA
+		rctx->SetBlendEquation(0);	// BLEND_FUNC_ADD
+		break;
+	case s2::FBM_ADD:
+		rctx->SetBlend(2, 2);		// BLEND_GL_ONE, BLEND_GL_ONE
+		rctx->SetBlendEquation(0);	// BLEND_FUNC_ADD
+		break;
+	case s2::FBM_SUBTRACT:
+		rctx->SetBlend(2, 6);		// BLEND_GL_ONE, BLEND_GL_ONE_MINUS_SRC_ALPHA
+		rctx->SetBlendEquation(1);	// BLEND_FUNC_SUBTRACT
+		break;
+	}
+
+	s2::BlendMode blend = s2::BM_NULL;
+	if (!rp.IsDisableBlend()) {
+		blend = rs.GetBlend();
+	}
+
+	filter = s2::FM_NULL;
+	if (!rp.IsDisableFilter()) {
+		filter = rs.GetFilter();
+	}
+
+	if (blend != s2::BM_NULL)
+	{
+		// todo: DrawBlend()
+	}
+	else if (filter != s2::FM_NULL)
+	{
+//		rp.camera = rc;
+
+		if (rp.IsChangeShader()) {
+			shader_mgr->SetShader(sl::FILTER);
+		}
+		sl::FilterShader* shader = static_cast<sl::FilterShader*>(shader_mgr->GetShader(sl::FILTER));
+		shader->SetMode(sl::FILTER_MODE(filter));
+	}
+	else
+	{
+//		rp.camera = rc;
+
+		if (rp.IsChangeShader()) {
+			shader_mgr->SetShader(sl::SPRITE2);
+		}
 	}
 }
 

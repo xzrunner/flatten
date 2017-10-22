@@ -3,6 +3,7 @@
 
 #include <cooking/DisplayList.h>
 #include <sprite2/s2_typedef.h>
+#include <sprite2/FilterMode.h>
 
 #include <vector>
 #include <memory>
@@ -10,6 +11,7 @@
 #include <stdint.h>
 
 namespace s2 { class RenderParams; }
+namespace sl { class ShaderMgr; }
 
 namespace ft
 {
@@ -47,6 +49,9 @@ private:
 	int  CalcDListAllCount(const cooking::DisplayList& dlist, int pos) const;
 
 	void SetDrawlistDirty(const FTNode* node);
+
+	void PrepareDraw(sl::ShaderMgr* shader_mgr, const s2::RenderParams& rp, 
+		const s2::Sprite* spr, s2::FilterMode& filter);
 
 private:
 	static const int MAX_LAYER = 16;
