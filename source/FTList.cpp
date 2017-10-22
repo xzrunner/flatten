@@ -8,7 +8,6 @@
 #include <sprite2/S2_Sprite.h>
 #include <sprite2/RenderParams.h>
 #include <sprite2/Utility.h>
-
 #include <sprite2/S2_Symbol.h>
 #include <sprite2/SymType.h>
 #include <sprite2/DrawNode.h>
@@ -17,6 +16,7 @@
 
 #include <cooking/DisplayList.h>
 #include <memmgr/BlockAllocatorPool.h>
+#include <shaderlab/ShaderMgr.h>
 
 #include <assert.h>
 
@@ -126,6 +126,8 @@ void FTList::DrawForward(int pos, const s2::RenderParams& rp)
 
 	assert(m_nodes[0].m_count == m_nodes_sz);
 
+	sl::ShaderMgr* shader_mgr = sl::ShaderMgr::Instance();
+
 	const FTNode* node_ptr = &m_nodes[pos];
 	int start_layer = node_ptr->m_layer;
 	int prev_layer = start_layer - 1;
@@ -160,6 +162,10 @@ void FTList::DrawForward(int pos, const s2::RenderParams& rp)
 			}
 		}
 		assert(node_ptr->m_layer + 1 - start_layer == stk_sz);
+
+		if (rp.IsChangeShader()) {
+			shader_mgr->SetShader(sl::SPRITE2);
+		}
 
 		s2::Utility::PrepareMat(stk_mat[stk_sz - 1], spr, actor, prev_mt);
 		s2::Utility::PrepareColor(stk_col[stk_sz - 1], spr, actor, prev_col);
@@ -207,6 +213,8 @@ void FTList::DrawDeferred(int pos, const s2::RenderParams& rp,
 	int old_pos = pos;
 	int old_dlist_pos = node_ptr->m_dlist_pos;
 	int old_dlist_count = CalcDListAllCount(*dlist, pos);
+
+	sl::ShaderMgr* shader_mgr = sl::ShaderMgr::Instance();
 
 	node_ptr = &m_nodes[pos];
 	int pos_off = node_ptr->m_dlist_pos;
@@ -260,6 +268,10 @@ void FTList::DrawDeferred(int pos, const s2::RenderParams& rp,
 			}
 		}
 		assert(node_ptr->m_layer + 1 - start_layer == stk_sz);
+
+		if (rp.IsChangeShader()) {
+			shader_mgr->SetShader(sl::SPRITE2);
+		}
 
 		s2::Utility::PrepareMat(stk_mat[stk_sz - 1], spr, actor, prev_mt);
 		s2::Utility::PrepareColor(stk_col[stk_sz - 1], spr, actor, prev_col);
