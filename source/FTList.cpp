@@ -350,17 +350,19 @@ void FTList::SetFrame(int pos, bool force, int frame,
 		{
 			auto spr(static_cast<const s2::Sprite*>(node_ptr->m_data));
 			if ((!force && !spr->IsInheritUpdate()) ||
-				!spr->IsVisible() ||
-				spr->GetSymbol()->Type() != s2::SYM_ANIMATION) 
+				!spr->IsVisible()) 
 			{
 				i += node_ptr->m_count;
 				node_ptr += node_ptr->m_count;
 			} 
 			else 
 			{
-				params.SetActor(nullptr);
-				auto anim_spr = S2_VI_DOWN_CAST<const s2::AnimSprite*>(spr);
-				dirty = const_cast<s2::AnimSprite*>(anim_spr)->SetFrame(params, frame);
+				auto type = spr->GetSymbol()->Type();
+				if (type == s2::SYM_ANIMATION) {
+					params.SetActor(nullptr);
+					auto anim_spr = S2_VI_DOWN_CAST<const s2::AnimSprite*>(spr);
+					dirty = const_cast<s2::AnimSprite*>(anim_spr)->SetFrame(params, frame);
+				}
 				++i;
 				++node_ptr;
 			}
@@ -369,17 +371,19 @@ void FTList::SetFrame(int pos, bool force, int frame,
 		{
 			auto actor(static_cast<const s2::Actor*>(node_ptr->m_data));
 			if ((!force && !actor->GetSprRaw()->IsInheritUpdate()) ||
-				!actor->IsVisible() ||
-				actor->GetSprRaw()->GetSymbol()->Type() != s2::SYM_ANIMATION)
+				!actor->IsVisible())
 			{
 				i += node_ptr->m_count;
 				node_ptr += node_ptr->m_count;
 			} 
 			else 
 			{
-				params.SetActor(const_cast<s2::Actor*>(actor));
-				auto anim_spr = S2_VI_DOWN_CAST<const s2::AnimSprite*>(actor->GetSprRaw());
-				dirty = const_cast<s2::AnimSprite*>(anim_spr)->SetFrame(params, frame);
+				auto type = actor->GetSprRaw()->GetSymbol()->Type();
+				if (type == s2::SYM_ANIMATION) {
+					params.SetActor(const_cast<s2::Actor*>(actor));
+					auto anim_spr = S2_VI_DOWN_CAST<const s2::AnimSprite*>(actor->GetSprRaw());
+					dirty = const_cast<s2::AnimSprite*>(anim_spr)->SetFrame(params, frame);
+				}
 				++i;
 				++node_ptr;
 			}
