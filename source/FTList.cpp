@@ -13,6 +13,8 @@
 #include <sprite2/DrawNode.h>
 #include <sprite2/AnimSprite.h>
 #include <sprite2/UpdateParams.h>
+#include <sprite2/ComplexSymbol.h>
+#include <sprite2/RenderScissor.h>
 
 #include <unirender/UR_RenderContext.h>
 #include <cooking/DisplayList.h>
@@ -119,11 +121,13 @@ void FTList::DrawForward(int pos, const s2::RenderParams& rp)
 	sm::Matrix2D    stk_mat[MAX_LAYER];
 	s2::RenderColor stk_col[MAX_LAYER];
 	s2::FilterMode  stk_filter[MAX_LAYER];
+	sm::rect        stk_scissor[MAX_LAYER];
 	int stk_sz = 0;
 
 	sm::Matrix2D    prev_mt = rp.mt;
 	s2::RenderColor prev_col = rp.color;
 	s2::FilterMode  prev_filter = rp.render_filter;
+	sm::rect        prev_scissor;
 
 	s2::RenderParams* rp_child = static_cast<s2::RenderParams*>(mm::AllocHelper::Allocate(sizeof(s2::RenderParams)));
 	memcpy(rp_child, &rp, sizeof(rp));
@@ -156,13 +160,18 @@ void FTList::DrawForward(int pos, const s2::RenderParams& rp)
 		if (node_ptr->m_layer == prev_layer) {
 			;
 		} else if (node_ptr->m_layer == prev_layer + 1) {
-			stk_mat[stk_sz]    = prev_mt;
-			stk_col[stk_sz]    = prev_col;
-			stk_filter[stk_sz] = prev_filter;
+			stk_mat[stk_sz]     = prev_mt;
+			stk_col[stk_sz]     = prev_col;
+			stk_filter[stk_sz]  = prev_filter;
+			stk_scissor[stk_sz] = prev_scissor;
 			++stk_sz;
 		} else {
 			assert(node_ptr->m_layer < prev_layer);
 			while (stk_sz > node_ptr->m_layer + 1 - start_layer) {
+				const sm::rect& scissor = stk_scissor[stk_sz - 1];
+				if (scissor.IsValid()) {
+					s2::RenderScissor::Instance()->Pop();
+				}
 				--stk_sz;
 			}
 		}
@@ -170,7 +179,15 @@ void FTList::DrawForward(int pos, const s2::RenderParams& rp)
 		
 		s2::Utility::PrepareMat(stk_mat[stk_sz - 1], spr, actor, prev_mt);
 		s2::Utility::PrepareColor(stk_col[stk_sz - 1], spr, actor, prev_col);
-		prev_filter = stk_filter[stk_sz - 1];
+		prev_filter  = stk_filter[stk_sz - 1];
+		if (spr->GetSymbol()->Type() == s2::SYM_COMPLEX) {
+			prev_scissor = S2_VI_PTR_DOWN_CAST<s2::ComplexSymbol>(spr->GetSymbol())->GetScissor();
+			if (prev_scissor.Width() == 0 || prev_scissor.Height() == 0) {
+				prev_scissor.MakeEmpty();
+			}
+		} else {
+			prev_scissor.MakeEmpty();
+		}
 		prev_layer = node_ptr->m_layer;
 
 		rp_child->mt = prev_mt;
@@ -179,7 +196,19 @@ void FTList::DrawForward(int pos, const s2::RenderParams& rp)
 
 		PrepareDraw(shader_mgr, *rp_child, spr, prev_filter);
 		rp_child->render_filter = prev_filter;
-
+		
+		if (prev_scissor.IsValid())
+		{
+			sm::vec2 min = rp_child->mt * sm::vec2(prev_scissor.xmin, prev_scissor.ymin),
+				     max = rp_child->mt * sm::vec2(prev_scissor.xmax, prev_scissor.ymax);
+			if (min.x > max.x) {
+				std::swap(min.x, max.x);
+			}
+			if (min.y > max.y) {
+				std::swap(min.y, max.y);
+			}
+			s2::RenderScissor::Instance()->Push(min.x, min.y, max.x - min.x, max.y - min.y, true, false);
+		}
 		if (spr->GetSymbol()->DrawNode(nullptr, *rp_child, spr, *this, i) == s2::RENDER_SKIP) {
 			i++;
 			node_ptr++;
@@ -187,6 +216,7 @@ void FTList::DrawForward(int pos, const s2::RenderParams& rp)
 			i += node_ptr->m_count;
 			node_ptr += node_ptr->m_count;
 		}
+
 	}
 
 	mm::AllocHelper::Free(rp_child, sizeof(s2::RenderParams));
