@@ -196,6 +196,10 @@ void FTList::DrawForward(int pos, const s2::RenderParams& rp)
 
 		PrepareDraw(shader_mgr, *rp_child, spr, prev_filter);
 		rp_child->render_filter = prev_filter;
+
+		if (rp.IsDisableDTexC2() || spr->IsDTexDisable()) {
+			rp_child->SetDisableDTexC2(true);
+		}
 		
 		if (prev_scissor.IsValid())
 		{
@@ -320,6 +324,10 @@ void FTList::DrawDeferred(int pos, const s2::RenderParams& rp,
 
 		PrepareDraw(shader_mgr, *rp_child, spr, prev_filter);
 		rp_child->render_filter = prev_filter;
+
+		if (rp.IsDisableDTexC2() || spr->IsDTexDisable()) {
+			rp_child->SetDisableDTexC2(true);
+		}
 
 		int start = pos_off + static_cast<uint16_t>(dlist_tmp.Size());
 		int old_count = node_ptr->m_dlist_count;
