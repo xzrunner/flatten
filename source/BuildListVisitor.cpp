@@ -29,10 +29,11 @@ s2::VisitResult BuildListVisitor::Visit(const s2::SprConstPtr& spr, const s2::Sp
 #ifndef S2_DISABLE_FLATTEN
 		actor->SetFlatten(m_flatten, pos);
 #endif // S2_DISABLE_FLATTEN
-
+#ifndef S2_DISABLE_DEFERRED
 		if (m_dlist) {
 			actor->SetDisplayList(m_dlist);
 		}
+#endif // S2_DISABLE_DEFERRED
 	} 
 	else 
 	{
