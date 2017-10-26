@@ -1,7 +1,7 @@
 #ifndef _FLATTEN_BUILD_LIST_VISITOR_H_
 #define _FLATTEN_BUILD_LIST_VISITOR_H_
 
-#include <sprite2/s2_config.h>
+#include <sprite2/config.h>
 #include <sprite2/SpriteVisitor.h>
 
 #include <vector>

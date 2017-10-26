@@ -2,7 +2,7 @@
 #define _FLATTEN_LIST_H_
 
 #include <cooking/DisplayList.h>
-#include <sprite2/s2_typedef.h>
+#include <sprite2/typedef.h>
 #include <sprite2/FilterMode.h>
 
 #include <vector>

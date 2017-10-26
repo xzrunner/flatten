@@ -4,11 +4,11 @@
 #include "flatten/CountNodesVisitor.h"
 
 #include <sprite2/SprVisitorParams.h>
-#include <sprite2/S2_Actor.h>
-#include <sprite2/S2_Sprite.h>
+#include <sprite2/Actor.h>
+#include <sprite2/Sprite.h>
 #include <sprite2/RenderParams.h>
 #include <sprite2/Utility.h>
-#include <sprite2/S2_Symbol.h>
+#include <sprite2/Symbol.h>
 #include <sprite2/SymType.h>
 #include <sprite2/DrawNode.h>
 #include <sprite2/AnimSprite.h>
@@ -16,7 +16,7 @@
 #include <sprite2/ComplexSymbol.h>
 #include <sprite2/RenderScissor.h>
 
-#include <unirender/UR_RenderContext.h>
+#include <unirender/RenderContext.h>
 #include <cooking/DisplayList.h>
 #include <memmgr/BlockAllocatorPool.h>
 #include <shaderlab/ShaderMgr.h>

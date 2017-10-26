@@ -3,7 +3,7 @@
 #include "flatten/FTNode.h"
 
 #include <sprite2/SprVisitorParams.h>
-#include <sprite2/S2_Actor.h>
+#include <sprite2/Actor.h>
 
 #include <assert.h>
 
