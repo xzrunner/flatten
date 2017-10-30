@@ -4,13 +4,14 @@
 #include <cooking/DisplayList.h>
 #include <sprite2/typedef.h>
 #include <sprite2/FilterMode.h>
+#include <sprite2/config.h>
 
 #include <vector>
 #include <memory>
 
 #include <stdint.h>
 
-namespace s2 { class RenderParams; }
+namespace s2 { class RenderParams; class RenderFilter; }
 namespace sl { class ShaderMgr; }
 
 namespace ft
@@ -50,8 +51,13 @@ private:
 
 	void SetDrawlistDirty(const FTNode* node);
 
+#ifndef S2_FILTER_FULL
 	void PrepareDraw(sl::ShaderMgr* shader_mgr, const s2::RenderParams& rp, 
 		const s2::Sprite* spr, s2::FilterMode& filter);
+#else
+	void PrepareDraw(sl::ShaderMgr* shader_mgr, const s2::RenderParams& rp,
+		const s2::Sprite* spr, s2::RenderFilter* filter);
+#endif // S2_FILTER_FULL
 
 private:
 	static const int MAX_LAYER = 16;

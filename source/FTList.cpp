@@ -120,13 +120,21 @@ void FTList::DrawForward(int pos, const s2::RenderParams& rp)
 
 	sm::Matrix2D    stk_mat[MAX_LAYER];
 	s2::RenderColor stk_col[MAX_LAYER];
+#ifndef S2_FILTER_FULL
 	s2::FilterMode  stk_filter[MAX_LAYER];
+#else
+	s2::RenderFilter* stk_filter[MAX_LAYER];
+#endif // S2_FILTER_FULL
 	sm::rect        stk_scissor[MAX_LAYER];
 	int stk_sz = 0;
 
 	sm::Matrix2D    prev_mt = rp.mt;
 	s2::RenderColor prev_col = rp.color;
+#ifndef S2_FILTER_FULL
 	s2::FilterMode  prev_filter = rp.render_filter;
+#else
+	s2::RenderFilter* prev_filter = rp.render_filter;
+#endif // S2_FILTER_FULL
 	sm::rect        prev_scissor;
 
 	s2::RenderParams* rp_child = static_cast<s2::RenderParams*>(mm::AllocHelper::Allocate(sizeof(s2::RenderParams)));
@@ -233,15 +241,23 @@ void FTList::DrawDeferred(int pos, const s2::RenderParams& rp,
 		return;
 	}
 
-	sm::Matrix2D    stk_mat[MAX_LAYER];
-	s2::RenderColor stk_col[MAX_LAYER];
-	s2::FilterMode  stk_filter[MAX_LAYER];
+	sm::Matrix2D      stk_mat[MAX_LAYER];
+	s2::RenderColor   stk_col[MAX_LAYER];
+#ifndef S2_FILTER_FULL
+	s2::FilterMode    stk_filter[MAX_LAYER];
+#else
+	s2::RenderFilter* stk_filter[MAX_LAYER];
+#endif // S2_FILTER_FULL
 
 	int stk_sz = 0;
 
-	sm::Matrix2D    prev_mt = rp.mt;
-	s2::RenderColor prev_col = rp.color;
-	s2::FilterMode  prev_filter = rp.render_filter;
+	sm::Matrix2D      prev_mt = rp.mt;
+	s2::RenderColor   prev_col = rp.color;
+#ifndef S2_FILTER_FULL
+	s2::FilterMode    prev_filter = rp.render_filter;
+#else
+	s2::RenderFilter* prev_filter = rp.render_filter;
+#endif // S2_FILTER_FULL
 
 	s2::RenderParams* rp_child = static_cast<s2::RenderParams*>(mm::AllocHelper::Allocate(sizeof(s2::RenderParams)));
 	memcpy(rp_child, &rp, sizeof(rp));
@@ -599,8 +615,13 @@ void FTList::SetDrawlistDirty(const FTNode* node)
 	}
 }
 
+#ifndef S2_FILTER_FULL
 void FTList::PrepareDraw(sl::ShaderMgr* shader_mgr, const s2::RenderParams& rp, 
 	                     const s2::Sprite* spr, s2::FilterMode& filter)
+#else
+void FTList::PrepareDraw(sl::ShaderMgr* shader_mgr, const s2::RenderParams& rp, 
+	                     const s2::Sprite* spr, s2::RenderFilter* filter)
+#endif // S2_FILTER_FULL
 {
 	s2::RenderShader rs;
 //	s2::RenderCamera rc;
@@ -641,6 +662,8 @@ void FTList::PrepareDraw(sl::ShaderMgr* shader_mgr, const s2::RenderParams& rp,
 		blend = rs.GetBlend();
 	}
 
+	// todo
+#ifndef S2_FILTER_FULL
 	filter = s2::FM_NULL;
 	if (!rp.IsDisableFilter()) {
 		filter = rs.GetFilter();
@@ -661,6 +684,7 @@ void FTList::PrepareDraw(sl::ShaderMgr* shader_mgr, const s2::RenderParams& rp,
 		shader->SetMode(sl::FILTER_MODE(filter));
 	}
 	else
+#endif // S2_FILTER_FULL
 	{
 //		rp.camera = rc;
 
