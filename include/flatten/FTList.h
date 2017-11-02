@@ -60,9 +60,6 @@ private:
 #endif // S2_FILTER_FULL
 
 private:
-	static const int MAX_LAYER = 16;
-
-private:
 	std::weak_ptr<s2::Actor> m_root;
 
 	FTNode* m_nodes;

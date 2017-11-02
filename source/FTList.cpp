@@ -112,20 +112,23 @@ bool FTList::Update(int pos, bool force, const std::shared_ptr<cooking::DisplayL
 	return ret;
 }
 
+static const int MAX_LAYER = 16;
+
+static sm::Matrix2D      STK_MAT[MAX_LAYER];
+static s2::RenderColor   STK_COL[MAX_LAYER];
+#ifndef S2_FILTER_FULL
+static s2::FilterMode    STK_FILTER[MAX_LAYER];
+#else
+static s2::RenderFilter* STK_FILTER[MAX_LAYER];
+#endif // S2_FILTER_FULL
+static sm::rect          STK_SCISSOR[MAX_LAYER];
+
 void FTList::DrawForward(int pos, const s2::RenderParams& rp)
 {
 	if (!CheckFirst(pos, nullptr)) {
 		return;
 	}
 
-	sm::Matrix2D    stk_mat[MAX_LAYER];
-	s2::RenderColor stk_col[MAX_LAYER];
-#ifndef S2_FILTER_FULL
-	s2::FilterMode  stk_filter[MAX_LAYER];
-#else
-	s2::RenderFilter* stk_filter[MAX_LAYER];
-#endif // S2_FILTER_FULL
-	sm::rect        stk_scissor[MAX_LAYER];
 	int stk_sz = 0;
 
 	sm::Matrix2D    prev_mt = rp.mt;
@@ -168,15 +171,15 @@ void FTList::DrawForward(int pos, const s2::RenderParams& rp)
 		if (node_ptr->m_layer == prev_layer) {
 			;
 		} else if (node_ptr->m_layer == prev_layer + 1) {
-			stk_mat[stk_sz]     = prev_mt;
-			stk_col[stk_sz]     = prev_col;
-			stk_filter[stk_sz]  = prev_filter;
-			stk_scissor[stk_sz] = prev_scissor;
+			STK_MAT[stk_sz]     = prev_mt;
+			STK_COL[stk_sz]     = prev_col;
+			STK_FILTER[stk_sz]  = prev_filter;
+			STK_SCISSOR[stk_sz] = prev_scissor;
 			++stk_sz;
 		} else {
 			assert(node_ptr->m_layer < prev_layer);
 			while (stk_sz > node_ptr->m_layer + 1 - start_layer) {
-				const sm::rect& scissor = stk_scissor[stk_sz - 1];
+				const sm::rect& scissor = STK_SCISSOR[stk_sz - 1];
 				if (scissor.IsValid()) {
 					s2::RenderScissor::Instance()->Pop();
 				}
@@ -184,12 +187,53 @@ void FTList::DrawForward(int pos, const s2::RenderParams& rp)
 			}
 		}
 		assert(node_ptr->m_layer + 1 - start_layer == stk_sz);
+
+		auto& sym = spr->GetSymbol();
 		
-		s2::Utility::PrepareMat(stk_mat[stk_sz - 1], spr, actor, prev_mt);
-		s2::Utility::PrepareColor(stk_col[stk_sz - 1], spr, actor, prev_col);
-		prev_filter  = stk_filter[stk_sz - 1];
-		if (spr->GetSymbol()->Type() == s2::SYM_COMPLEX) {
-			prev_scissor = S2_VI_PTR_DOWN_CAST<s2::ComplexSymbol>(spr->GetSymbol())->GetScissor();
+		// Expand
+		//s2::Utility::PrepareMat(stk_mat[stk_sz - 1], spr, actor, prev_mt);
+		if (spr->IsMatDisable()) {
+			prev_mt = STK_MAT[stk_sz - 1];
+		} else {
+			if (actor && actor->IsGeoDirty()) 
+			{
+				static S2_MAT tmp;
+				auto& m0(spr->GetLocalMat().x);
+				auto& m1(STK_MAT[stk_sz - 1].x);
+				auto& out(tmp.x);
+				SM_MAT2D_MUL(m0, m1, out);
+
+				auto& m2(actor->GetLocalMat().x);
+				auto& m3(tmp.x);
+				auto& out2(prev_mt.x);
+				SM_MAT2D_MUL(m2, m3, out2);
+			} 
+			else 
+			{
+				auto& m0(spr->GetLocalMat().x);
+				auto& m1(STK_MAT[stk_sz - 1].x);
+				auto& out(prev_mt.x);
+				SM_MAT2D_MUL(m0, m1, out);
+			}
+		}
+
+		// Expand
+		//s2::Utility::PrepareColor(stk_col[stk_sz - 1], spr, actor, prev_col);
+		if (spr->IsColorDisable()) {
+			prev_col = STK_COL[stk_sz - 1];
+		} else {
+			if (actor && actor->IsColorDirty()) {
+				static s2::RenderColor tmp;
+				s2::RenderColor::Mul(spr->GetColor(), STK_COL[stk_sz - 1], tmp);
+				s2::RenderColor::Mul(actor->GetColor(), tmp, prev_col);
+			} else {
+				s2::RenderColor::Mul(spr->GetColor(), STK_COL[stk_sz - 1], prev_col);
+			}
+		}
+
+		prev_filter  = STK_FILTER[stk_sz - 1];
+		if (sym->Type() == s2::SYM_COMPLEX) {
+			prev_scissor = S2_VI_PTR_DOWN_CAST<s2::ComplexSymbol>(sym)->GetScissor();
 			if (prev_scissor.Width() == 0 || prev_scissor.Height() == 0) {
 				prev_scissor.MakeEmpty();
 			}
@@ -221,7 +265,7 @@ void FTList::DrawForward(int pos, const s2::RenderParams& rp)
 			}
 			s2::RenderScissor::Instance()->Push(min.x, min.y, max.x - min.x, max.y - min.y, true, false);
 		}
-		if (spr->GetSymbol()->DrawNode(nullptr, *rp_child, spr, *this, i) == s2::RENDER_SKIP) {
+		if (sym->DrawNode(nullptr, *rp_child, spr, *this, i) == s2::RENDER_SKIP) {
 			i++;
 			node_ptr++;
 		} else {
