@@ -20,10 +20,10 @@ public:
 	BuildListVisitor(const std::shared_ptr<FTList>& flatten, 
 		const std::shared_ptr<cooking::DisplayList>& dlist);
 
-	virtual s2::VisitResult Visit(const s2::SprConstPtr& spr, const s2::SprVisitorParams& params);
+	virtual s2::VisitResult Visit(const s2::SprConstPtr& spr, const s2::SprVisitorParams& params) override;
 
-	virtual s2::VisitResult VisitChildrenBegin(const s2::SprConstPtr& spr, const s2::SprVisitorParams& params);
-	virtual s2::VisitResult VisitChildrenEnd(const s2::SprConstPtr& spr, const s2::SprVisitorParams& params);
+	virtual s2::VisitResult VisitChildrenBegin(const s2::SprConstPtr& spr, const s2::SprVisitorParams& params) override;
+	virtual s2::VisitResult VisitChildrenEnd(const s2::SprConstPtr& spr, const s2::SprVisitorParams& params) override;
 
 private:
 	const std::shared_ptr<FTList>& m_flatten;
