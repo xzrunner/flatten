@@ -18,7 +18,6 @@
 
 #include <unirender/RenderContext.h>
 #include <cooking/DisplayList.h>
-#include <memmgr/BlockAllocatorPool.h>
 #include <shaderlab/ShaderMgr.h>
 #include <shaderlab/FilterShader.h>
 
