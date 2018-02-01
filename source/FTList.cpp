@@ -113,14 +113,15 @@ bool FTList::Update(int pos, bool force, const std::shared_ptr<cooking::DisplayL
 
 static const int MAX_LAYER = 16;
 
-static sm::Matrix2D      STK_MAT[MAX_LAYER];
-static s2::RenderColor   STK_COL[MAX_LAYER];
+static sm::Matrix2D           STK_MAT[MAX_LAYER];
+static pt2::RenderColorCommon STK_COL_COMMON[MAX_LAYER];
+static pt2::RenderColorMap    STK_COL_MAP[MAX_LAYER];
 #ifndef S2_FILTER_FULL
-static s2::FilterMode    STK_FILTER[MAX_LAYER];
+static s2::FilterMode         STK_FILTER[MAX_LAYER];
 #else
-static s2::RenderFilter* STK_FILTER[MAX_LAYER];
+static s2::RenderFilter*      STK_FILTER[MAX_LAYER];
 #endif // S2_FILTER_FULL
-static sm::rect          STK_SCISSOR[MAX_LAYER];
+static sm::rect               STK_SCISSOR[MAX_LAYER];
 
 void FTList::DrawForward(int pos, const s2::RenderParams& rp)
 {
@@ -131,7 +132,8 @@ void FTList::DrawForward(int pos, const s2::RenderParams& rp)
 	int stk_sz = 0;
 
 	sm::Matrix2D    prev_mt = rp.mt;
-	s2::RenderColor prev_col = rp.color;
+	auto prev_col_common    = rp.col_common;
+	auto prev_col_map       = rp.col_map;
 #ifndef S2_FILTER_FULL
 	s2::FilterMode  prev_filter = rp.render_filter;
 #else
@@ -170,10 +172,11 @@ void FTList::DrawForward(int pos, const s2::RenderParams& rp)
 		if (node_ptr->m_layer == prev_layer) {
 			;
 		} else if (node_ptr->m_layer == prev_layer + 1) {
-			STK_MAT[stk_sz]     = prev_mt;
-			STK_COL[stk_sz]     = prev_col;
-			STK_FILTER[stk_sz]  = prev_filter;
-			STK_SCISSOR[stk_sz] = prev_scissor;
+			STK_MAT[stk_sz]        = prev_mt;
+			STK_COL_COMMON[stk_sz] = prev_col_common;
+			STK_COL_MAP[stk_sz]    = prev_col_map;
+			STK_FILTER[stk_sz]     = prev_filter;
+			STK_SCISSOR[stk_sz]    = prev_scissor;
 			++stk_sz;
 		} else {
 			assert(node_ptr->m_layer < prev_layer);
@@ -219,14 +222,20 @@ void FTList::DrawForward(int pos, const s2::RenderParams& rp)
 		// Expand
 		//s2::Utility::PrepareColor(stk_col[stk_sz - 1], spr, actor, prev_col);
 		if (spr->IsColorDisable()) {
-			prev_col = STK_COL[stk_sz - 1];
+			prev_col_common = STK_COL_COMMON[stk_sz - 1];
+			prev_col_map    = STK_COL_MAP[stk_sz - 1];
 		} else {
 			if (actor && actor->IsColorDirty()) {
-				static s2::RenderColor tmp;
-				s2::RenderColor::Mul(spr->GetColor(), STK_COL[stk_sz - 1], tmp);
-				s2::RenderColor::Mul(actor->GetColor(), tmp, prev_col);
+				pt2::RenderColorCommon tmp_common;
+				pt2::RenderColorMap    tmp_map;
+				pt2::RenderColorCommon::Mul(spr->GetColorCommon(), STK_COL_COMMON[stk_sz - 1], tmp_common);
+				pt2::RenderColorMap::Mul(spr->GetColorMap(), STK_COL_MAP[stk_sz - 1], tmp_map);
+				// todo zz
+				//pt2::RenderColorCommon::Mul(actor->GetColorCommon(), tmp_common, prev_col_common);
+				//pt2::RenderColorMap::Mul(actor->GetColorMap(), tmp_map, prev_col_map);
 			} else {
-				s2::RenderColor::Mul(spr->GetColor(), STK_COL[stk_sz - 1], prev_col);
+				pt2::RenderColorCommon::Mul(spr->GetColorCommon(), STK_COL_COMMON[stk_sz - 1], prev_col_common);
+				pt2::RenderColorMap::Mul(spr->GetColorMap(), STK_COL_MAP[stk_sz - 1], prev_col_map);
 			}
 		}
 
@@ -241,9 +250,10 @@ void FTList::DrawForward(int pos, const s2::RenderParams& rp)
 		}
 		prev_layer = node_ptr->m_layer;
 
-		rp_child->mt = prev_mt;
-		rp_child->color = prev_col;
-		rp_child->actor = actor;
+		rp_child->mt         = prev_mt;
+		rp_child->col_common = prev_col_common;
+		rp_child->col_map    = prev_col_map;
+		rp_child->actor      = actor;
 
 		PrepareDraw(shader_mgr, *rp_child, spr, prev_filter);
 		rp_child->render_filter = prev_filter;
@@ -284,18 +294,20 @@ void FTList::DrawDeferred(int pos, const s2::RenderParams& rp,
 		return;
 	}
 
-	sm::Matrix2D      stk_mat[MAX_LAYER];
-	s2::RenderColor   stk_col[MAX_LAYER];
+	sm::Matrix2D           stk_mat[MAX_LAYER];
+	pt2::RenderColorCommon stk_col_common[MAX_LAYER];
+	pt2::RenderColorMap    stk_col_map[MAX_LAYER];
 #ifndef S2_FILTER_FULL
-	s2::FilterMode    stk_filter[MAX_LAYER];
+	s2::FilterMode         stk_filter[MAX_LAYER];
 #else
-	s2::RenderFilter* stk_filter[MAX_LAYER];
+	s2::RenderFilter*      stk_filter[MAX_LAYER];
 #endif // S2_FILTER_FULL
 
 	int stk_sz = 0;
 
 	sm::Matrix2D      prev_mt = rp.mt;
-	s2::RenderColor   prev_col = rp.color;
+	auto              prev_col_common = rp.col_common;
+	auto              prev_col_map = rp.col_map;
 #ifndef S2_FILTER_FULL
 	s2::FilterMode    prev_filter = rp.render_filter;
 #else
@@ -360,9 +372,10 @@ void FTList::DrawDeferred(int pos, const s2::RenderParams& rp,
 		if (node_ptr->m_layer == prev_layer) {
 			;
 		} else if (node_ptr->m_layer == prev_layer + 1) {
-			stk_mat[stk_sz]    = prev_mt;
-			stk_col[stk_sz]    = prev_col;
-			stk_filter[stk_sz] = prev_filter;
+			stk_mat[stk_sz]        = prev_mt;
+			stk_col_common[stk_sz] = prev_col_common;
+			stk_col_map[stk_sz]    = prev_col_map;
+			stk_filter[stk_sz]     = prev_filter;
 			++stk_sz;
 		} else {
 			assert(node_ptr->m_layer < prev_layer);
@@ -372,14 +385,21 @@ void FTList::DrawDeferred(int pos, const s2::RenderParams& rp,
 		}
 		assert(node_ptr->m_layer + 1 - start_layer == stk_sz);
 
-		s2::Utility::PrepareMat(stk_mat[stk_sz - 1], spr, actor, prev_mt);
-		s2::Utility::PrepareColor(stk_col[stk_sz - 1], spr, actor, prev_col);
+		pt2::RenderColorCommon tmp_common;
+		pt2::RenderColorMap    tmp_map;
+		pt2::RenderColorCommon::Mul(spr->GetColorCommon(), STK_COL_COMMON[stk_sz - 1], tmp_common);
+		pt2::RenderColorMap::Mul(spr->GetColorMap(), STK_COL_MAP[stk_sz - 1], tmp_map);
+		// todo zz
+		//pt2::RenderColorCommon::Mul(actor->GetColorCommon(), tmp_common, prev_col_common);
+		//pt2::RenderColorMap::Mul(actor->GetColorMap(), tmp_map, prev_col_map);
+
 		prev_filter = stk_filter[stk_sz - 1];
 		prev_layer = node_ptr->m_layer;
 
-		rp_child->mt = prev_mt;
-		rp_child->color = prev_col;
-		rp_child->actor = static_cast<const s2::Actor*>(node_ptr->m_data);
+		rp_child->mt         = prev_mt;
+		rp_child->col_common = prev_col_common;
+		rp_child->col_map    = prev_col_map;
+		rp_child->actor      = static_cast<const s2::Actor*>(node_ptr->m_data);
 
 		PrepareDraw(shader_mgr, *rp_child, spr, prev_filter);
 		rp_child->render_filter = prev_filter;
