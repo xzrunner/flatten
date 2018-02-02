@@ -117,7 +117,7 @@ static sm::Matrix2D           STK_MAT[MAX_LAYER];
 static pt2::RenderColorCommon STK_COL_COMMON[MAX_LAYER];
 static pt2::RenderColorMap    STK_COL_MAP[MAX_LAYER];
 #ifndef S2_FILTER_FULL
-static s2::FilterMode         STK_FILTER[MAX_LAYER];
+static pt2::FilterMode         STK_FILTER[MAX_LAYER];
 #else
 static s2::RenderFilter*      STK_FILTER[MAX_LAYER];
 #endif // S2_FILTER_FULL
@@ -135,7 +135,7 @@ void FTList::DrawForward(int pos, const s2::RenderParams& rp)
 	auto prev_col_common    = rp.col_common;
 	auto prev_col_map       = rp.col_map;
 #ifndef S2_FILTER_FULL
-	s2::FilterMode  prev_filter = rp.render_filter;
+	pt2::FilterMode  prev_filter = rp.render_filter;
 #else
 	s2::RenderFilter* prev_filter = rp.render_filter;
 #endif // S2_FILTER_FULL
@@ -298,7 +298,7 @@ void FTList::DrawDeferred(int pos, const s2::RenderParams& rp,
 	pt2::RenderColorCommon stk_col_common[MAX_LAYER];
 	pt2::RenderColorMap    stk_col_map[MAX_LAYER];
 #ifndef S2_FILTER_FULL
-	s2::FilterMode         stk_filter[MAX_LAYER];
+	pt2::FilterMode         stk_filter[MAX_LAYER];
 #else
 	s2::RenderFilter*      stk_filter[MAX_LAYER];
 #endif // S2_FILTER_FULL
@@ -309,7 +309,7 @@ void FTList::DrawDeferred(int pos, const s2::RenderParams& rp,
 	auto              prev_col_common = rp.col_common;
 	auto              prev_col_map = rp.col_map;
 #ifndef S2_FILTER_FULL
-	s2::FilterMode    prev_filter = rp.render_filter;
+	pt2::FilterMode    prev_filter = rp.render_filter;
 #else
 	s2::RenderFilter* prev_filter = rp.render_filter;
 #endif // S2_FILTER_FULL
@@ -680,7 +680,7 @@ void FTList::SetDrawlistDirty(const FTNode* node)
 
 #ifndef S2_FILTER_FULL
 void FTList::PrepareDraw(sl::ShaderMgr* shader_mgr, const s2::RenderParams& rp, 
-	                     const s2::Sprite* spr, s2::FilterMode& filter)
+	                     const s2::Sprite* spr, pt2::FilterMode& filter)
 #else
 void FTList::PrepareDraw(sl::ShaderMgr* shader_mgr, const s2::RenderParams& rp, 
 	                     const s2::Sprite* spr, s2::RenderFilter* filter)
@@ -706,37 +706,37 @@ void FTList::PrepareDraw(sl::ShaderMgr* shader_mgr, const s2::RenderParams& rp,
 	ur::RenderContext* rctx = shader_mgr->GetContext();
 	switch (rs.GetFastBlend())
 	{
-	case s2::FBM_NULL:
+	case pt2::FBM_NULL:
 		rctx->SetBlend(2, 6);		// BLEND_GL_ONE, BLEND_GL_ONE_MINUS_SRC_ALPHA
 		rctx->SetBlendEquation(0);	// BLEND_FUNC_ADD
 		break;
-	case s2::FBM_ADD:
+	case pt2::FBM_ADD:
 		rctx->SetBlend(2, 2);		// BLEND_GL_ONE, BLEND_GL_ONE
 		rctx->SetBlendEquation(0);	// BLEND_FUNC_ADD
 		break;
-	case s2::FBM_SUBTRACT:
+	case pt2::FBM_SUBTRACT:
 		rctx->SetBlend(2, 6);		// BLEND_GL_ONE, BLEND_GL_ONE_MINUS_SRC_ALPHA
 		rctx->SetBlendEquation(1);	// BLEND_FUNC_SUBTRACT
 		break;
 	}
 
-	s2::BlendMode blend = s2::BM_NULL;
+	pt2::BlendMode blend = pt2::BM_NULL;
 	if (!rp.IsDisableBlend()) {
 		blend = rs.GetBlend();
 	}
 
 	// todo
 #ifndef S2_FILTER_FULL
-	filter = s2::FM_NULL;
+	filter = pt2::FM_NULL;
 	if (!rp.IsDisableFilter()) {
 		filter = rs.GetFilter();
 	}
 
-	if (blend != s2::BM_NULL)
+	if (blend != pt2::BM_NULL)
 	{
 		// todo: DrawBlend()
 	}
-	else if (filter != s2::FM_NULL)
+	else if (filter != pt2::FM_NULL)
 	{
 //		rp.camera = rc;
 

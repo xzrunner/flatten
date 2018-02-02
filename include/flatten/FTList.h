@@ -3,8 +3,8 @@
 
 #include <cooking/DisplayList.h>
 #include <sprite2/typedef.h>
-#include <sprite2/FilterMode.h>
 #include <sprite2/config.h>
+#include <painting2/FilterMode.h>
 
 #include <vector>
 #include <memory>
@@ -53,7 +53,7 @@ private:
 
 #ifndef S2_FILTER_FULL
 	void PrepareDraw(sl::ShaderMgr* shader_mgr, const s2::RenderParams& rp, 
-		const s2::Sprite* spr, s2::FilterMode& filter);
+		const s2::Sprite* spr, pt2::FilterMode& filter);
 #else
 	void PrepareDraw(sl::ShaderMgr* shader_mgr, const s2::RenderParams& rp,
 		const s2::Sprite* spr, s2::RenderFilter* filter);
