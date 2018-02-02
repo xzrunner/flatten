@@ -13,6 +13,7 @@
 
 namespace s2 { class RenderParams; class RenderFilter; }
 namespace sl { class ShaderMgr; }
+namespace pt2 { class RenderFilter; }
 
 namespace ft
 {
@@ -56,7 +57,7 @@ private:
 		const s2::Sprite* spr, pt2::FilterMode& filter);
 #else
 	void PrepareDraw(sl::ShaderMgr* shader_mgr, const s2::RenderParams& rp,
-		const s2::Sprite* spr, s2::RenderFilter* filter);
+		const s2::Sprite* spr, pt2::RenderFilter* filter);
 #endif // S2_FILTER_FULL
 
 private:

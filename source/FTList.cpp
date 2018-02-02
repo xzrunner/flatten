@@ -15,6 +15,7 @@
 #include <sprite2/UpdateParams.h>
 #include <sprite2/ComplexSymbol.h>
 #include <sprite2/RenderScissor.h>
+#include <sprite2/CompShader.h>
 
 #include <unirender/RenderContext.h>
 #include <cooking/DisplayList.h>
@@ -119,7 +120,7 @@ static pt2::RenderColorMap    STK_COL_MAP[MAX_LAYER];
 #ifndef S2_FILTER_FULL
 static pt2::FilterMode         STK_FILTER[MAX_LAYER];
 #else
-static s2::RenderFilter*      STK_FILTER[MAX_LAYER];
+static pt2::RenderFilter*      STK_FILTER[MAX_LAYER];
 #endif // S2_FILTER_FULL
 static sm::rect               STK_SCISSOR[MAX_LAYER];
 
@@ -137,7 +138,7 @@ void FTList::DrawForward(int pos, const s2::RenderParams& rp)
 #ifndef S2_FILTER_FULL
 	pt2::FilterMode  prev_filter = rp.render_filter;
 #else
-	s2::RenderFilter* prev_filter = rp.render_filter;
+	pt2::RenderFilter* prev_filter = rp.render_filter;
 #endif // S2_FILTER_FULL
 	sm::rect        prev_scissor;
 
@@ -300,7 +301,7 @@ void FTList::DrawDeferred(int pos, const s2::RenderParams& rp,
 #ifndef S2_FILTER_FULL
 	pt2::FilterMode         stk_filter[MAX_LAYER];
 #else
-	s2::RenderFilter*      stk_filter[MAX_LAYER];
+	pt2::RenderFilter*      stk_filter[MAX_LAYER];
 #endif // S2_FILTER_FULL
 
 	int stk_sz = 0;
@@ -311,7 +312,7 @@ void FTList::DrawDeferred(int pos, const s2::RenderParams& rp,
 #ifndef S2_FILTER_FULL
 	pt2::FilterMode    prev_filter = rp.render_filter;
 #else
-	s2::RenderFilter* prev_filter = rp.render_filter;
+	pt2::RenderFilter* prev_filter = rp.render_filter;
 #endif // S2_FILTER_FULL
 
 	s2::RenderParams* rp_child = static_cast<s2::RenderParams*>(mm::AllocHelper::Allocate(sizeof(s2::RenderParams)));
@@ -683,19 +684,20 @@ void FTList::PrepareDraw(sl::ShaderMgr* shader_mgr, const s2::RenderParams& rp,
 	                     const s2::Sprite* spr, pt2::FilterMode& filter)
 #else
 void FTList::PrepareDraw(sl::ShaderMgr* shader_mgr, const s2::RenderParams& rp, 
-	                     const s2::Sprite* spr, s2::RenderFilter* filter)
+	                     const s2::Sprite* spr, pt2::RenderFilter* filter)
 #endif // S2_FILTER_FULL
 {
-	s2::RenderShader rs;
-//	s2::RenderCamera rc;
+	pt2::RenderShader rs;
+//	pt2::RenderCamera rc;
 	if (rp.IsDisableRenderDraw()) {
-		rs = *s2::SprDefault::Instance()->Shader();
-//		rc = *s2::SprDefault::Instance()->Camera();
+		rs = s2::SprDefault::Instance()->Shader().GetShader();
+//		rc = s2::SprDefault::Instance()->Camera();
 	} else if (spr->HaveActor()) {
 		rs = spr->GetShader().Multiply(filter, rp.render_blend, rp.render_fast_blend, rp.render_downsample);
 //		rc = spr->GetCamera() * rp.camera;
 		if (rp.actor) {
-			rs = rp.actor->GetShader() * rs;
+			// todo zz
+			//rs = rp.actor->GetShader() * rs;
 //			rc = rp.actor->GetCamera() * rc;
 		}
 	} else {
