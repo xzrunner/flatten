@@ -231,9 +231,8 @@ void FTList::DrawForward(int pos, const s2::RenderParams& rp)
 				pt2::RenderColorMap    tmp_map;
 				pt2::RenderColorCommon::Mul(spr->GetColorCommon(), STK_COL_COMMON[stk_sz - 1], tmp_common);
 				pt2::RenderColorMap::Mul(spr->GetColorMap(), STK_COL_MAP[stk_sz - 1], tmp_map);
-				// todo zz
-				//pt2::RenderColorCommon::Mul(actor->GetColorCommon(), tmp_common, prev_col_common);
-				//pt2::RenderColorMap::Mul(actor->GetColorMap(), tmp_map, prev_col_map);
+				pt2::RenderColorCommon::Mul(actor->GetColorCommon(), tmp_common, prev_col_common);
+				pt2::RenderColorMap::Mul(actor->GetColorMap(), tmp_map, prev_col_map);
 			} else {
 				pt2::RenderColorCommon::Mul(spr->GetColorCommon(), STK_COL_COMMON[stk_sz - 1], prev_col_common);
 				pt2::RenderColorMap::Mul(spr->GetColorMap(), STK_COL_MAP[stk_sz - 1], prev_col_map);
@@ -390,9 +389,8 @@ void FTList::DrawDeferred(int pos, const s2::RenderParams& rp,
 		pt2::RenderColorMap    tmp_map;
 		pt2::RenderColorCommon::Mul(spr->GetColorCommon(), STK_COL_COMMON[stk_sz - 1], tmp_common);
 		pt2::RenderColorMap::Mul(spr->GetColorMap(), STK_COL_MAP[stk_sz - 1], tmp_map);
-		// todo zz
-		//pt2::RenderColorCommon::Mul(actor->GetColorCommon(), tmp_common, prev_col_common);
-		//pt2::RenderColorMap::Mul(actor->GetColorMap(), tmp_map, prev_col_map);
+		pt2::RenderColorCommon::Mul(actor->GetColorCommon(), tmp_common, prev_col_common);
+		pt2::RenderColorMap::Mul(actor->GetColorMap(), tmp_map, prev_col_map);
 
 		prev_filter = stk_filter[stk_sz - 1];
 		prev_layer = node_ptr->m_layer;
@@ -690,14 +688,13 @@ void FTList::PrepareDraw(sl::ShaderMgr* shader_mgr, const s2::RenderParams& rp,
 	pt2::RenderShader rs;
 //	pt2::RenderCamera rc;
 	if (rp.IsDisableRenderDraw()) {
-		rs = s2::SprDefault::Instance()->Shader().GetShader();
-//		rc = s2::SprDefault::Instance()->Camera();
+		rs = s2::CompDefault::Instance()->Shader().GetShader();
+//		rc = s2::CompDefault::Instance()->Camera();
 	} else if (spr->HaveActor()) {
 		rs = spr->GetShader().Multiply(filter, rp.render_blend, rp.render_fast_blend, rp.render_downsample);
 //		rc = spr->GetCamera() * rp.camera;
 		if (rp.actor) {
-			// todo zz
-			//rs = rp.actor->GetShader() * rs;
+			rs = rp.actor->GetShader() * rs;
 //			rc = rp.actor->GetCamera() * rc;
 		}
 	} else {
