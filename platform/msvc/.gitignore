@@ -1,0 +1,5 @@
+flatten/
+projects/*
+
+!projects/flatten.vcxproj
+!projects/flatten.vcxproj.filters
