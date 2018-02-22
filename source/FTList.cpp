@@ -3,6 +3,7 @@
 #include "flatten/BuildListVisitor.h"
 #include "flatten/CountNodesVisitor.h"
 
+#include <painting2/RenderScissor.h>
 #include <sprite2/SprVisitorParams.h>
 #include <sprite2/Actor.h>
 #include <sprite2/Sprite.h>
@@ -14,7 +15,6 @@
 #include <sprite2/AnimSprite.h>
 #include <sprite2/UpdateParams.h>
 #include <sprite2/ComplexSymbol.h>
-#include <sprite2/RenderScissor.h>
 #include <sprite2/CompShader.h>
 
 #include <unirender/RenderContext.h>
@@ -184,7 +184,7 @@ void FTList::DrawForward(int pos, const s2::RenderParams& rp)
 			while (stk_sz > node_ptr->m_layer + 1 - start_layer) {
 				const sm::rect& scissor = STK_SCISSOR[stk_sz - 1];
 				if (scissor.IsValid()) {
-					s2::RenderScissor::Instance()->Pop();
+					pt2::RenderScissor::Instance()->Pop();
 				}
 				--stk_sz;
 			}
@@ -272,7 +272,7 @@ void FTList::DrawForward(int pos, const s2::RenderParams& rp)
 			if (min.y > max.y) {
 				std::swap(min.y, max.y);
 			}
-			s2::RenderScissor::Instance()->Push(min.x, min.y, max.x - min.x, max.y - min.y, true, false);
+			pt2::RenderScissor::Instance()->Push(min.x, min.y, max.x - min.x, max.y - min.y, true, false);
 		}
 		if (sym->DrawNode(nullptr, *rp_child, spr, *this, i) == s2::RENDER_SKIP) {
 			i++;
