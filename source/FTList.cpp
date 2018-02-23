@@ -274,7 +274,7 @@ void FTList::DrawForward(int pos, const s2::RenderParams& rp)
 			}
 			pt2::RenderScissor::Instance()->Push(min.x, min.y, max.x - min.x, max.y - min.y, true, false);
 		}
-		if (sym->DrawNode(nullptr, *rp_child, spr, *this, i) == s2::RENDER_SKIP) {
+		if (sym->DrawNode(nullptr, *rp_child, spr, *this, i) == pt2::RENDER_SKIP) {
 			i++;
 			node_ptr++;
 		} else {
@@ -409,12 +409,12 @@ void FTList::DrawDeferred(int pos, const s2::RenderParams& rp,
 
 		int start = pos_off + static_cast<uint16_t>(dlist_tmp.Size());
 		int old_count = node_ptr->m_dlist_count;
-		s2::RenderReturn ret = spr->GetSymbol()->DrawNode(&dlist_tmp, *rp_child, spr, *this, i);
+		pt2::RenderReturn ret = spr->GetSymbol()->DrawNode(&dlist_tmp, *rp_child, spr, *this, i);
 		node_ptr->m_dlist_count = pos_off + static_cast<uint16_t>(dlist_tmp.Size()) - start;
 
 		node_ptr->SetDrawlistDirty(false);
 
-		if (ret == s2::RENDER_SKIP) {
+		if (ret == pt2::RENDER_SKIP) {
 			i++;
 			node_ptr++;
 		} else {
