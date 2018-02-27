@@ -19,6 +19,7 @@
 
 #include <unirender/RenderContext.h>
 #include <cooking/DisplayList.h>
+#include <shaderlab/Blackboard.h>
 #include <shaderlab/ShaderMgr.h>
 #include <shaderlab/FilterShader.h>
 
@@ -147,7 +148,7 @@ void FTList::DrawForward(int pos, const s2::RenderParams& rp)
 
 	assert(m_nodes[0].m_count == m_nodes_sz);
 
-	sl::ShaderMgr* shader_mgr = sl::ShaderMgr::Instance();
+	sl::ShaderMgr* shader_mgr = sl::Blackboard::Instance()->GetShaderMgr();
 
 	const FTNode* node_ptr = &m_nodes[pos];
 	int start_layer = node_ptr->m_layer;
@@ -328,7 +329,7 @@ void FTList::DrawDeferred(int pos, const s2::RenderParams& rp,
 	int old_dlist_pos = node_ptr->m_dlist_pos;
 	int old_dlist_count = CalcDListAllCount(*dlist, pos);
 
-	sl::ShaderMgr* shader_mgr = sl::ShaderMgr::Instance();
+	sl::ShaderMgr* shader_mgr = sl::Blackboard::Instance()->GetShaderMgr();
 
 	node_ptr = &m_nodes[pos];
 	int pos_off = node_ptr->m_dlist_pos;
@@ -702,20 +703,20 @@ void FTList::PrepareDraw(sl::ShaderMgr* shader_mgr, const s2::RenderParams& rp,
 //		rc = spr->GetCamera() * rp.camera;
 	}
 
-	ur::RenderContext* rctx = shader_mgr->GetContext();
+	auto& ur_rc = shader_mgr->GetContext();
 	switch (rs.GetFastBlend())
 	{
 	case pt2::FBM_NULL:
-		rctx->SetBlend(2, 6);		// BLEND_GL_ONE, BLEND_GL_ONE_MINUS_SRC_ALPHA
-		rctx->SetBlendEquation(0);	// BLEND_FUNC_ADD
+		ur_rc.SetBlend(2, 6);		// BLEND_GL_ONE, BLEND_GL_ONE_MINUS_SRC_ALPHA
+		ur_rc.SetBlendEquation(0);	// BLEND_FUNC_ADD
 		break;
 	case pt2::FBM_ADD:
-		rctx->SetBlend(2, 2);		// BLEND_GL_ONE, BLEND_GL_ONE
-		rctx->SetBlendEquation(0);	// BLEND_FUNC_ADD
+		ur_rc.SetBlend(2, 2);		// BLEND_GL_ONE, BLEND_GL_ONE
+		ur_rc.SetBlendEquation(0);	// BLEND_FUNC_ADD
 		break;
 	case pt2::FBM_SUBTRACT:
-		rctx->SetBlend(2, 6);		// BLEND_GL_ONE, BLEND_GL_ONE_MINUS_SRC_ALPHA
-		rctx->SetBlendEquation(1);	// BLEND_FUNC_SUBTRACT
+		ur_rc.SetBlend(2, 6);		// BLEND_GL_ONE, BLEND_GL_ONE_MINUS_SRC_ALPHA
+		ur_rc.SetBlendEquation(1);	// BLEND_FUNC_SUBTRACT
 		break;
 	}
 
