@@ -4,6 +4,8 @@
 #include "flatten/CountNodesVisitor.h"
 
 #include <painting2/RenderScissor.h>
+#include <painting2/Blackboard.h>
+#include <painting2/Context.h>
 #include <sprite2/SprVisitorParams.h>
 #include <sprite2/Actor.h>
 #include <sprite2/Sprite.h>
@@ -184,7 +186,8 @@ void FTList::DrawForward(int pos, const s2::RenderParams& rp)
 			while (stk_sz > node_ptr->m_layer + 1 - start_layer) {
 				const sm::rect& scissor = STK_SCISSOR[stk_sz - 1];
 				if (scissor.IsValid()) {
-					pt2::RenderScissor::Instance()->Pop();
+					auto& pt2_ctx = pt2::Blackboard::Instance()->GetContext();
+					pt2_ctx.GetScissor().Pop();
 				}
 				--stk_sz;
 			}
@@ -273,7 +276,8 @@ void FTList::DrawForward(int pos, const s2::RenderParams& rp)
 			if (min.y > max.y) {
 				std::swap(min.y, max.y);
 			}
-			pt2::RenderScissor::Instance()->Push(min.x, min.y, max.x - min.x, max.y - min.y, true, false);
+			auto& pt2_ctx = pt2::Blackboard::Instance()->GetContext();
+			pt2_ctx.GetScissor().Push(min.x, min.y, max.x - min.x, max.y - min.y, true, false);
 		}
 		if (sym->DrawNode(nullptr, *rp_child, spr, *this, i) == pt2::RENDER_SKIP) {
 			i++;
