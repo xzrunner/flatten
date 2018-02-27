@@ -21,6 +21,7 @@
 #include <cooking/DisplayList.h>
 #include <shaderlab/Blackboard.h>
 #include <shaderlab/ShaderMgr.h>
+#include <shaderlab/RenderContext.h>
 #include <shaderlab/FilterShader.h>
 
 #include <assert.h>
@@ -148,8 +149,6 @@ void FTList::DrawForward(int pos, const s2::RenderParams& rp)
 
 	assert(m_nodes[0].m_count == m_nodes_sz);
 
-	sl::ShaderMgr* shader_mgr = sl::Blackboard::Instance()->GetShaderMgr();
-
 	const FTNode* node_ptr = &m_nodes[pos];
 	int start_layer = node_ptr->m_layer;
 	int prev_layer = start_layer - 1;
@@ -256,7 +255,8 @@ void FTList::DrawForward(int pos, const s2::RenderParams& rp)
 		rp_child->col_map    = prev_col_map;
 		rp_child->actor      = actor;
 
-		PrepareDraw(shader_mgr, *rp_child, spr, prev_filter);
+		auto& rc = sl::Blackboard::Instance()->GetRenderContext();
+		PrepareDraw(rc, *rp_child, spr, prev_filter);
 		rp_child->render_filter = prev_filter;
 
 		if (rp.IsDisableDTexC2() || spr->IsDTexDisable()) {
@@ -329,7 +329,7 @@ void FTList::DrawDeferred(int pos, const s2::RenderParams& rp,
 	int old_dlist_pos = node_ptr->m_dlist_pos;
 	int old_dlist_count = CalcDListAllCount(*dlist, pos);
 
-	sl::ShaderMgr* shader_mgr = sl::Blackboard::Instance()->GetShaderMgr();
+	auto& rc = sl::Blackboard::Instance()->GetRenderContext();
 
 	node_ptr = &m_nodes[pos];
 	int pos_off = node_ptr->m_dlist_pos;
@@ -401,7 +401,7 @@ void FTList::DrawDeferred(int pos, const s2::RenderParams& rp,
 		rp_child->col_map    = prev_col_map;
 		rp_child->actor      = static_cast<const s2::Actor*>(node_ptr->m_data);
 
-		PrepareDraw(shader_mgr, *rp_child, spr, prev_filter);
+		PrepareDraw(rc, *rp_child, spr, prev_filter);
 		rp_child->render_filter = prev_filter;
 
 		if (rp.IsDisableDTexC2() || spr->IsDTexDisable()) {
@@ -679,10 +679,10 @@ void FTList::SetDrawlistDirty(const FTNode* node)
 }
 
 #ifndef S2_FILTER_FULL
-void FTList::PrepareDraw(sl::ShaderMgr* shader_mgr, const s2::RenderParams& rp, 
+void FTList::PrepareDraw(sl::RenderContext& rc, const s2::RenderParams& rp, 
 	                     const s2::Sprite* spr, pt2::FilterMode& filter)
 #else
-void FTList::PrepareDraw(sl::ShaderMgr* shader_mgr, const s2::RenderParams& rp, 
+void FTList::PrepareDraw(sl::RenderContext& rc, const s2::RenderParams& rp, 
 	                     const s2::Sprite* spr, pt2::RenderFilter* filter)
 #endif // S2_FILTER_FULL
 {
@@ -703,7 +703,7 @@ void FTList::PrepareDraw(sl::ShaderMgr* shader_mgr, const s2::RenderParams& rp,
 //		rc = spr->GetCamera() * rp.camera;
 	}
 
-	auto& ur_rc = shader_mgr->GetContext();
+	auto& ur_rc = rc.GetContext();
 	switch (rs.GetFastBlend())
 	{
 	case pt2::FBM_NULL:
@@ -741,9 +741,9 @@ void FTList::PrepareDraw(sl::ShaderMgr* shader_mgr, const s2::RenderParams& rp,
 //		rp.camera = rc;
 
 		if (rp.IsChangeShader()) {
-			shader_mgr->SetShader(sl::FILTER);
+			rc.GetShaderMgr().SetShader(sl::FILTER);
 		}
-		sl::FilterShader* shader = static_cast<sl::FilterShader*>(shader_mgr->GetShader(sl::FILTER));
+		sl::FilterShader* shader = static_cast<sl::FilterShader*>(rc.GetShaderMgr().GetShader(sl::FILTER));
 		shader->SetMode(sl::FILTER_MODE(filter));
 	}
 	else
@@ -752,7 +752,7 @@ void FTList::PrepareDraw(sl::ShaderMgr* shader_mgr, const s2::RenderParams& rp,
 //		rp.camera = rc;
 
 		if (rp.IsChangeShader()) {
-			shader_mgr->SetShader(sl::SPRITE2);
+			rc.GetShaderMgr().SetShader(sl::SPRITE2);
 		}
 	}
 }

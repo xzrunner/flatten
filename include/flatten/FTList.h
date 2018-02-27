@@ -12,7 +12,7 @@
 #include <stdint.h>
 
 namespace s2 { class RenderParams; class RenderFilter; }
-namespace sl { class ShaderMgr; }
+namespace sl { class RenderContext; }
 namespace pt2 { class RenderFilter; }
 
 namespace ft
@@ -53,10 +53,10 @@ private:
 	void SetDrawlistDirty(const FTNode* node);
 
 #ifndef S2_FILTER_FULL
-	void PrepareDraw(sl::ShaderMgr* shader_mgr, const s2::RenderParams& rp, 
+	void PrepareDraw(sl::RenderContext& rc, const s2::RenderParams& rp,
 		const s2::Sprite* spr, pt2::FilterMode& filter);
 #else
-	void PrepareDraw(sl::ShaderMgr* shader_mgr, const s2::RenderParams& rp,
+	void PrepareDraw(sl::RenderContext& rc, const s2::RenderParams& rp,
 		const s2::Sprite* spr, pt2::RenderFilter* filter);
 #endif // S2_FILTER_FULL
 
