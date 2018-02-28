@@ -20,6 +20,7 @@
 #include <sprite2/CompShader.h>
 
 #include <unirender/RenderContext.h>
+#include <unirender/Blackboard.h>
 #include <cooking/DisplayList.h>
 #include <shaderlab/Blackboard.h>
 #include <shaderlab/ShaderMgr.h>
@@ -707,7 +708,7 @@ void FTList::PrepareDraw(sl::RenderContext& rc, const s2::RenderParams& rp,
 //		rc = spr->GetCamera() * rp.camera;
 	}
 
-	auto& ur_rc = rc.GetContext();
+	auto& ur_rc = ur::Blackboard::Instance()->GetRenderContext();
 	switch (rs.GetFastBlend())
 	{
 	case pt2::FBM_NULL:
