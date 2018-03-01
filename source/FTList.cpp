@@ -5,7 +5,7 @@
 
 #include <painting2/RenderScissor.h>
 #include <painting2/Blackboard.h>
-#include <painting2/Context.h>
+#include <painting2/RenderContext.h>
 #include <sprite2/SprVisitorParams.h>
 #include <sprite2/Actor.h>
 #include <sprite2/Sprite.h>
